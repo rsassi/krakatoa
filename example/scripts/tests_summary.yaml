@@ -1,0 +1,17 @@
+---
+- name: 'Test group: success path'
+  testcases:
+  - mangled_name: testa
+    mangled_name_hash: 1234
+    name: 'Test a: two arguments are identical'
+    path: dir1/test1.cc
+  - mangled_name: testb
+    mangled_name_hash: 5678
+    name: 'Test b: argument is XYZ'
+    path: dir1/test1.cc
+- name: 'Test group: failute paths'
+  testcases:
+  - mangled_name: testc
+    mangled_name_hash: 90123
+    name: 'Testc: two arguments are different from each other'
+    path: dir1/test1.cc

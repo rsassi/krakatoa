@@ -1,0 +1,2 @@
+- regex: '\_GLOBAL_'
+- regex: '.*static_initialization_and_destruction'

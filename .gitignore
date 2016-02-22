@@ -1,0 +1,6 @@
+.project
+DirectoryRollup/target
+gcov2covDB/target
+example/results
+example/src/bin
+

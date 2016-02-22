@@ -1,0 +1,334 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+ "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<title>Coverage by directory</title>
+
+<style>
+body
+{
+  font-family:Calibri,Helvetica Neue,Helvetica,sans-serif,serif;
+  font-size:16pt;
+}
+ul
+{
+  list-style-type: none;
+  margin-bottom:1em;
+}
+
+li
+{
+  font-size:18pt;
+  margin-bottom:0.5em;
+  margin-top:0.5em;
+}
+
+li span.clickTarget
+{
+  vertical-align:middle;
+}
+
+li span.clickTarget::before
+{
+  content: "\229e\2003";
+}
+
+li span.clickTarget.expanded::before
+{
+  content: "\229f\2003";
+}
+
+li table
+{
+  border-collapse:collapse;
+  display:inline-block;
+  font-size:16pt;
+  margin:0;
+  padding:0;
+  vertical-align:middle;
+}
+
+li table tbody
+{
+  margin:0;
+  padding:0;
+}
+
+ul.collapsing {
+  display: none;
+}
+ul.collapsing-show {
+  display: block;
+}
+.clickTarget
+{
+/*  border-bottom: 1px dotted; */
+  cursor: pointer;
+}
+
+table tr,
+table td
+{
+  margin:0;
+  padding:0 0.5em 0 0;
+}
+
+table td.componentName
+{
+  width:15em;
+}
+
+table td.componentTestCount
+{
+  width:5em;
+}
+
+table td.componentExecutedFunctionCount
+{
+  width:25em;
+}
+
+table td.componentFunctionCoverage
+{
+  width:3em;
+}
+
+/*=======*/
+table tr.uninteresting
+{
+/*  color:lightslategray; */
+}
+
+table td.warning
+{
+  color:#C15800;
+  font-weight:bold;
+}
+
+table td.critical
+{
+  color:red;
+  font-weight:bold;
+}
+
+table td.normal
+{
+  color:green;
+  font-weight:bold;
+}
+
+
+</style>
+</head>
+
+<body>
+<h1>Coverage by directory</h1>
+
+<p>Function coverage percentages:</p>
+
+<table>
+<tbody>
+<tr><td class="critical">xx%</td><td>coverage is &lt; 33%</td></tr>
+<tr><td class="warning">yy%</td><td>coverage is between 33% and 66%</td></tr>
+<tr><td class="normal">xx%</td><td>coverage is &gt;= 66%</td></tr>
+</tbody>
+</table>
+
+
+<table>
+<ul>
+<li><span class="clickTarget">/a :1</span>
+    <ul class="collapsing"> 
+        <li><span class="clickTarget">/a/b : 2</span>
+            <ul class="collapsing"> 
+             <li>/a/b/c : 4</li> 
+            </ul>
+        </li> 
+        <li>/a/d : 5</li> 
+        <li><span class="clickTarget">/a/e :6 </span> 
+            <ul class="collapsing"> 
+                <li>/a/e/f : 7</li>
+            </ul>
+        </li>
+    </ul>
+</li>
+</ul>
+</table>
+
+<script>
+//<![CDATA[//]]>
+var DomUtils = {
+  hasClass: function(elem, className) {
+    if (    !elem.className 
+         || (elem.className===null)
+         || (typeof elem=='undefined') )
+      return false;
+
+    var classes = elem.className.split(' ');
+    for (var idx=0; idx<classes.length; idx++)
+    {
+      if (classes[idx] == className)
+        return true;
+    }
+
+    return false;
+  },
+  // DomUtils.hasClass()
+
+  removeClass: function(elem, className) {
+    if (    !elem.className
+         || (elem.className === null)
+         || (typeof elem == 'undefined') )
+      return false;
+
+    var classes = elem.className.split(' ');
+    var newClasses = '';
+    var fFoundClass = false;
+    for (var idx=0; idx<classes.length; idx++)
+    {
+      if (classes[idx] == className)
+      {
+        fFoundClass = true;
+      }
+      else
+      {
+        if (newClasses == '')
+          newClasses = classes[idx];
+        else
+          newClasses += " " + classes[idx];
+      }
+    }
+    if (fFoundClass)
+    {
+      elem.className = newClasses;
+    }
+    return true;
+  },  // removeClass
+
+  addClass: function(elem, className) {
+    if ( (typeof elem=='undefined') || this.hasClass(elem, className) )
+      return;
+    if (elem.className)
+    {
+      elem.className += " " + className;
+    }
+    else
+      elem.className = className;
+    return;
+  },
+  // DomUtils.addClass()
+
+
+  addLoadEvent: function(func) {
+    var oldonload = window.onload;
+    if (typeof window.onload != 'function') {
+      window.onload = func;
+    } else {
+      window.onload = function() {
+        oldonload();
+        func();
+      }
+    }
+  },  // addLoadEvent()
+
+  addUnloadEvent: function(func) {
+    var oldonunload = window.onunload;
+    if (typeof window.onunload != 'function') {
+      window.onunload = func;
+    } else {
+      window.onunload = function() {
+        oldonunload();
+        func();
+      }
+    }
+  },  // addUnloadEvent()
+
+  // dummy property at the end to make it easier to add more properties
+  // before this one
+  dummyProperty: ''
+
+};  // DomUtils
+
+(function(){
+
+  var toggleCollapsingElement = function(event)
+  {
+    var collapsedElems = this.parentNode.getElementsByTagName('ul');
+    var doneToggling = false;
+
+    if (DomUtils.hasClass(this, 'expanded'))
+    {
+      DomUtils.removeClass(this, 'expanded');
+    }
+    else
+    {
+      DomUtils.addClass(this, 'expanded');
+    }
+
+    // Toggle the first collapsing child
+    for (var i=0; i < collapsedElems.length && !doneToggling; ++i)
+    {
+      var elem = collapsedElems[i];
+      if (DomUtils.hasClass(elem, 'collapsing'))
+      {
+        doneToggling = true;
+        DomUtils.removeClass(elem, 'collapsing');
+        DomUtils.addClass(elem, 'collapsing-show');
+      }
+      else if (DomUtils.hasClass(elem, 'collapsing-show'))
+      {
+        doneToggling = true;
+        DomUtils.removeClass(elem, 'collapsing-show');
+        DomUtils.addClass(elem, 'collapsing');
+      }
+    }  // loop over collapsedElems
+
+    event.stopPropagation();
+  }
+
+  DomUtils.addLoadEvent(
+    function() {
+      var elems = document.getElementsByTagName('ul');
+      for (var i=0; i < elems.length; ++i)
+      {
+        var elem = elems[i];
+        if (   DomUtils.hasClass(elem, 'collapsing')
+            || DomUtils.hasClass(elem, 'collapsing-show'))
+        {
+          var siblings = elem.parentNode.getElementsByTagName('span');
+          for (var idx=0; idx < siblings.length; ++idx)
+          {
+            var clickTarget=siblings[idx];
+            if (DomUtils.hasClass(clickTarget, 'clickTarget'))
+            {
+              clickTarget.addEventListener(
+                'click', toggleCollapsingElement, false);
+                // false == handle event bubbling up
+            }
+          }  // loop over span children of parent node
+        }  // if ul element is a collapsing one
+      }  // loop over all ul elements in the document
+
+      elems = document.getElementsByTagName('li');
+      for (var i=0; i < elems.length; ++i)
+      {
+        var liElem = elems[i];
+        if (   (liElem.firstChild != null)
+            && (liElem.firstChild.nodeName != 'SPAN') )
+        {
+          var textNode = document.createTextNode('\u22a1\u2003');
+          liElem.insertBefore(textNode, liElem.firstChild);
+        }  // if the first child of the li element is not a span element
+
+      }  // loop over all li elements
+    }  // load event function
+  );
+
+})();
+
+
+//]]>
+</script>
+
+</body>
+</html>

@@ -1,0 +1,11 @@
+.
+./abc
+./adapter/antenna
+./antenna
+./antenna/service
+./antenna/service/antVCC
+./antenna/service/currentMeas
+./antenna/service/feederConn
+./antenna/service/modem
+./antenna/service/portOverload
+./antenna/service/power

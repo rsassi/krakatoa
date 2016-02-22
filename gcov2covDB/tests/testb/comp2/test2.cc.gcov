@@ -1,0 +1,39 @@
+        -:    0:Source:src/test2.cc
+        -:    0:Programs:2
+        -:    1:#include <string>
+        -:    2:#include <iostream>
+        -:    3:#include "test1.h"
+        -:    4:
+        -:    5:
+function _Z14lautrefonctionv called 1 returned 100% blocks executed 100%
+        1:    6:void lautrefonction(){
+        1:    7: std::cout << "etlautre\n";
+call    0 returned 100%
+        1:    8: int x = 1;
+        1:    9: int y = x +1;
+        -:   10:  Inline xyz;
+        1:   11:  xyz.foo(false);
+call    0 returned 100%
+        -:   12://  signed long long w =9;
+        -:   13://  w = xyz.bar(w);
+        1:   14:}
+        -:   15:
+function _Z12otherGetNameRSs called 1 returned 100% blocks executed 75%
+        1:   16:void otherGetName(std::string& testNames) {
+        1:   17:	size_t lineEnd = testNames.find_first_of("W", 0);
+call    0 returned 100%
+        1:   18:	if (lineEnd != std::string::npos){
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+    #####:   19:		std::cout << "o";
+call    0 never executed
+        -:   20:	}
+function _Z41__static_initialization_and_destruction_0ii called 1 returned 100% blocks executed 100%
+function _GLOBAL__I__Z14lautrefonctionv called 1 returned 100% blocks executed 100%
+        4:   21:}
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+branch  2 taken 100% (fallthrough)
+branch  3 taken 0%
+call    4 returned 100%
+        -:   22:

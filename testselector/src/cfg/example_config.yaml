@@ -1,0 +1,34 @@
+
+#MySQL DB info:
+dbconfig:
+    host: my.db.host.com
+    port: 3301
+    database: smarttestdb
+    login: user
+    password: password
+
+
+output:
+    defaultFileName: "test/mira/tests/testsuites/smarttest.mira"
+    escapeTestNames: true
+    # Sometimes we need to replace a file prefix in the test suite output
+    removePrefix:  'test/mira/'
+    replacePrefixWith:  ''
+
+git:
+    # Sometimes we need to replace a file prefix in the git output
+    # so it matches what is in the coverage database.
+    removePrefix:  'sw/app'
+    replacePrefixWith:  '.'
+
+    # Which files should be considered for test selection?
+    includeFilesRegexp: [
+         !ruby/regexp '/\.c[cxp]*$/i'
+    ]
+
+    # From the file that match matchingFilesRegexp,
+    # some should not be considered for various reasons
+    ignoreFilesRegexp: [
+        !ruby/regexp '/\/unitTest\//'
+        , !ruby/regexp '/\/test\//'
+    ]

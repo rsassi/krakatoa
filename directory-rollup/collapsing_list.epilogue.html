@@ -1,0 +1,178 @@
+
+<script>
+//<![CDATA[//]]>
+var DomUtils = {
+  hasClass: function(elem, className) {
+    if (    !elem.className 
+         || (elem.className===null)
+         || (typeof elem=='undefined') )
+      return false;
+
+    var classes = elem.className.split(' ');
+    for (var idx=0; idx<classes.length; idx++)
+    {
+      if (classes[idx] == className)
+        return true;
+    }
+
+    return false;
+  },
+  // DomUtils.hasClass()
+
+  removeClass: function(elem, className) {
+    if (    !elem.className
+         || (elem.className === null)
+         || (typeof elem == 'undefined') )
+      return false;
+
+    var classes = elem.className.split(' ');
+    var newClasses = '';
+    var fFoundClass = false;
+    for (var idx=0; idx<classes.length; idx++)
+    {
+      if (classes[idx] == className)
+      {
+        fFoundClass = true;
+      }
+      else
+      {
+        if (newClasses == '')
+          newClasses = classes[idx];
+        else
+          newClasses += " " + classes[idx];
+      }
+    }
+    if (fFoundClass)
+    {
+      elem.className = newClasses;
+    }
+    return true;
+  },  // removeClass
+
+  addClass: function(elem, className) {
+    if ( (typeof elem=='undefined') || this.hasClass(elem, className) )
+      return;
+    if (elem.className)
+    {
+      elem.className += " " + className;
+    }
+    else
+      elem.className = className;
+    return;
+  },
+  // DomUtils.addClass()
+
+
+  addLoadEvent: function(func) {
+    var oldonload = window.onload;
+    if (typeof window.onload != 'function') {
+      window.onload = func;
+    } else {
+      window.onload = function() {
+        oldonload();
+        func();
+      }
+    }
+  },  // addLoadEvent()
+
+  addUnloadEvent: function(func) {
+    var oldonunload = window.onunload;
+    if (typeof window.onunload != 'function') {
+      window.onunload = func;
+    } else {
+      window.onunload = function() {
+        oldonunload();
+        func();
+      }
+    }
+  },  // addUnloadEvent()
+
+  // dummy property at the end to make it easier to add more properties
+  // before this one
+  dummyProperty: ''
+
+};  // DomUtils
+
+(function(){
+
+  var toggleCollapsingElement = function(event)
+  {
+    var collapsedElems = this.parentNode.getElementsByTagName('ul');
+    var doneToggling = false;
+
+    if (DomUtils.hasClass(this, 'expanded'))
+    {
+      DomUtils.removeClass(this, 'expanded');
+    }
+    else
+    {
+      DomUtils.addClass(this, 'expanded');
+    }
+
+    // Toggle the first collapsing child
+    for (var i=0; i < collapsedElems.length && !doneToggling; ++i)
+    {
+      var elem = collapsedElems[i];
+      if (DomUtils.hasClass(elem, 'collapsing'))
+      {
+        doneToggling = true;
+        DomUtils.removeClass(elem, 'collapsing');
+        DomUtils.addClass(elem, 'collapsing-show');
+      }
+      else if (DomUtils.hasClass(elem, 'collapsing-show'))
+      {
+        doneToggling = true;
+        DomUtils.removeClass(elem, 'collapsing-show');
+        DomUtils.addClass(elem, 'collapsing');
+      }
+    }  // loop over collapsedElems
+
+    event.stopPropagation();
+  }
+
+  DomUtils.addLoadEvent(
+    function() {
+      var elems = document.getElementsByTagName('ul');
+      for (var i=0; i < elems.length; ++i)
+      {
+        var elem = elems[i];
+        if (   DomUtils.hasClass(elem, 'collapsing')
+            || DomUtils.hasClass(elem, 'collapsing-show'))
+        {
+          var siblings = elem.parentNode.getElementsByTagName('span');
+          for (var idx=0; idx < siblings.length; ++idx)
+          {
+            var clickTarget=siblings[idx];
+            if (DomUtils.hasClass(clickTarget, 'clickTarget'))
+            {
+              clickTarget.addEventListener(
+                'click', toggleCollapsingElement, false);
+                // false == handle event bubbling up
+            }
+          }  // loop over span children of parent node
+        }  // if ul element is a collapsing one
+      }  // loop over all ul elements in the document
+
+      elems = document.getElementsByTagName('li');
+      for (var i=0; i < elems.length; ++i)
+      {
+        var liElem = elems[i];
+        if (   (liElem.firstChild != null)
+            && (liElem.firstChild.nodeName != 'SPAN') )
+        {
+          var textNode = document.createTextNode('\u22a1\u2003');
+          liElem.insertBefore(textNode, liElem.firstChild);
+        }  // if the first child of the li element is not a span element
+
+      }  // loop over all li elements
+    }  // load event function
+  );
+
+})();
+
+
+//]]>
+</script>
+
+</body>
+</html>

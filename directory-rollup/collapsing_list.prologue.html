@@ -1,0 +1,135 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+ "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<title>Coverage by directory</title>
+
+<style>
+body
+{
+  font-family:Calibri,Helvetica Neue,Helvetica,sans-serif,serif;
+  font-size:16pt;
+}
+ul
+{
+  list-style-type: none;
+  margin-bottom:1em;
+}
+
+li
+{
+  font-size:18pt;
+  margin-bottom:0.5em;
+  margin-top:0.5em;
+}
+
+li span.clickTarget
+{
+  vertical-align:middle;
+}
+
+li span.clickTarget::before
+{
+  content: "\229e\2003";
+}
+
+li span.clickTarget.expanded::before
+{
+  content: "\229f\2003";
+}
+
+li table
+{
+  border-collapse:collapse;
+  display:inline-block;
+  font-size:16pt;
+  margin:0;
+  padding:0;
+  vertical-align:middle;
+}
+
+li table tbody
+{
+  margin:0;
+  padding:0;
+}
+
+ul.collapsing {
+  display: none;
+}
+ul.collapsing-show {
+  display: block;
+}
+.clickTarget
+{
+/*  border-bottom: 1px dotted; */
+  cursor: pointer;
+}
+
+table tr,
+table td
+{
+  margin:0;
+  padding:0 0.5em 0 0;
+}
+
+table td.componentName
+{
+  width:15em;
+}
+
+table td.componentTestCount
+{
+  width:5em;
+}
+
+table td.componentExecutedFunctionCount
+{
+  width:25em;
+}
+
+table td.componentFunctionCoverage
+{
+  width:3em;
+}
+
+=======
+table tr.uninteresting
+{
+/*  color:lightslategray; */
+}
+
+table td.warning
+{
+  color:#C15800;
+  font-weight:bold;
+}
+
+table td.critical
+{
+  color:red;
+  font-weight:bold;
+}
+
+table td.normal
+{
+  color:green;
+  font-weight:bold;
+}
+
+
+</style>
+</head>
+
+<body>
+<h1>Coverage by directory</h1>
+
+<p>Function coverage percentages:</p>
+
+<table>
+<tbody>
+<tr><td class="critical">xx%</td><td>coverage is &lt; 33%</td></tr>
+<tr><td class="warning">yy%</td><td>coverage is between 33% and 66%</td></tr>
+<tr><td class="normal">xx%</td><td>coverage is &gt;= 66%</td></tr>
+</tbody>
+</table>
