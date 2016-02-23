@@ -49,7 +49,7 @@ END_OF_BANNER
       end
 
       opts.on("-oFILE", "--out FILE", "Override the name of the test suite file.#{TEXT_INDENT}Only valid with --create.") do |filename|
-        options[:output_file] = fileName
+        options[:output_file] = filename
       end
 
       opts.on("--id HASH",  Array, "Comma-separated list of git commit identifiers.#{TEXT_INDENT}Selects all tests calling at least one function#{TEXT_INDENT} in one of the modified files.#{TEXT_INDENT}Defaults to HEAD.#{TEXT_INDENT}Only valid with --create.") do |commits|
