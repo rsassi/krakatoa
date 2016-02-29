@@ -1,28 +1,145 @@
 # krakatoa
-Test selection and other reports using code coverage data.
-<br/>
+Test selection and other tools and reports using code coverage data.
 
+The goals:
+* test selection using historical coverage data
+* test to source code traceability
+
+
+This project includes
+* An example on how per test coverage data can be generated with gcov and loaded into MySQL
+* A MySQL schema to store and query function coverage efficiently
+* gcov2covDB java program to convert .gcov files into .csv files that can be loaded into MySQL
+* testselector script to select a subset of tests based on coverage data.
+* perdircoverage java program to generate an html collapsable tree showing coverage for each source code directory.
+
+
+# What is krakatoa testselector ?
 For large testsuites it often becomes impossible to run all the tests on each code change.
-<br/>
-Although the only supported source of coverage data is gcov, this approach and tool set can be integrated with any system that can generate function coverage.
-<br/>
-This system was originally aimed at C++ applications but can be used with any language and testing framwork.
-<br/>
-This tool leverages per test function coverage data to determine which tests should be updated and executed for a given change set.
-<br/>
-The rule used to select tests is very simple and conservative:
-* select all tests that call at least one function in one of the modified files in the specified git changeset.
-<br/>
 
-Another alternative is to use this:
+It becomes imperative to be able to select a subset of tests which are relevant to the changes made.
+
+This project uses test coverage data to identify relevant tests.
+
+To achieve this, all tests must be executed to extract coverage data for each individual test.
+This is usually perfomed daily or weekly depending on the duration of the tests. More frequent is better.
+Once this is available, developers can use the testselector tool to select which tests should be executed. 
+It selects only tests that were known in the recent past to exercise the modified files or functions.
+
+How data is gathered and used:
+
+![alt text](images/testselector.png "testselector overview")
+
+This system was originally aimed at C++ applications but can be used with any language and testing framework.
+Initialy the only supported source of coverage data is gcov, however this approach can be integrated with any system that can generate function coverage. Extend gcov2covDB to parse other types of input data.
+
+Input:
+* Per test function coverage data collected periodically, daily or weekly, stored in MySQL using the provided schema
+* The project git repo
+* A list of git commits or functions to use to determine relevant tests
+
+The rule used to select tests are very simple:
+* select all tests that call at least one function in one of the modified files in the specified git change sets.
+
+   OR
 * select all tests that call a certain list of functions
 
+Output:
+* List of relevant tests in specified format
 
 
-# This project includes
-* A MySQL schema to store function coverage effciently
-* An example on how per test coverage data can be generated with gcov and loaded into MySQL
-* A gcov2covDB.jar with source to convert .gcov files into .csv files that can be loaded into MySQL
-* A testselector script to select a subset of tests based on coverage and either a function name or files modified in a git commit.
+## testselector usage 
+
+* cd into your repo
+* Invoke '''''testselector''''' to create a Krakatoa.mira test suite.
+
+Try this first:
+```
+ testselector --help
+```
 
 
+### 1) Select tests covering code in files modified in last commit
+```
+ testselector
+ cd /repo/gitproject
+ Searching which tests in ["regression.mira"] exercise code in one of the following .cc files from ["8f6c4233f8a4cbad"]:
+ ["./eqp/rdEqp/serviceControl/src/rdEqpCtrl.cc"]
+ For 1 C++ files in commit ["8f6c4233f8a4cbad"], identified 278 relevant tests out of 551(50.45%)
+ New mira suite created: /repo/gitproject/test/mira/tests/testsuites/Krakatoa.mira
+ Elapsed time: 6.278 seconds.
+```
+
+### 2) Select tests covering code in files modified in a commit
+
+Get the list of testsuites for which we have data:
+``` 
+ cd /repo/gitproject
+ testselector --list-test-suites
+ regression.mira
+ smoke.mira
+ other.mira
+ Elapsed time: 0.021 seconds.
+```
+In the following example we ask ''testselector'' to select a subset of tests from multiple test suites. In this example the test suites are called: { smoke, regression and other }.
+We also specify a commit to be used (HEAD is used when not specified).
+```
+ cd /repo/gitproject
+ testselector --test-suites smoke.mira,regression.mira,other.mira -i fdca7fbd6d 
+ Searching which tests in ["smoke.mira", "regression.mira", "other.mira"] exercise code in one of the following .cc files from ["fdca7fbd6d"]:
+ ["./antenna/service/voltage/src/voltageService.cc"]
+ For 1 C++ files in commit ["fdca7fbd6d"], identified 209 relevant tests out of 808(25.87%)
+ New mira suite created: /repo/gitproject/test/mira/tests/testsuites/Krakatoa.mira
+ Elapsed time: 0.398 seconds.
+```
+
+### 3) Select tests covering a function (or class)
+Looking for tests that invoke a specific function:
+```
+ cd /repo/gitproject
+ testselector --function TxBrFaultAdvisor::onFaultRaised
+ Searching which tests in ["regression.mira"] exercise the function TxBrFaultAdvisor::onFaultRaised.
+ For 1 matching functions, identified 14 relevant tests out of 551(2.54%)
+ New mira suite created: /repo/gitproject/test/mira/tests/testsuites/Krakatoa.mira
+ Elapsed time: 40.368 seconds.
+```
+
+# Using gcov to Generate per test coverage data
+
+Although gcov2covDB is designed to parse gcov files, it can be extended to parse other coverage data to generate the required .csv files.
+
+gcda is the intermediary data format generated by executable instrumented with gcov.
+For more information on gcov visit this [link](https://en.wikipedia.org/wiki/Gcov).
+
+__Definition:__
+
+_test mangled name_ = the name of the test in a format that is compatible with a file name on your system. 
+
+Example: a valid test mangled name for 'app1' executing "TC #1 verify computation of x'" could be something like this: "app1__TC_#1_verify_computation_of_x"
+
+
+### 1) gcda: single test per executable
+
+After executing each test executable:
+* mv the directory containing the gcda data to an archive location.
+* rename the directory to the test test mangled name
+
+This is the simplest setup and is shown in details in 'example/'.
+
+### 2) gcda: multiple tests per executable
+This applies if you are using testing frameworks such as CppUnit or GoogleTest.
+
+In order to capture per test data you will need to add hooks to your testing framework as follow:
+
+Before each test:
+* Clear the gcov data (requires customization libgcov)
+
+After each test, dump the gcda data like this:
+* Call __gcov_flush()  (from the gcov lib declared in gcov-io.h)
+* mv the directory containing the gcda data to an archive location.
+* rename the directory to the test test mangled name
+
+Clearing the gcov data before each test is not mandatory but helps generate accurate coverage data by excluding initializtion code that occured prior to the test execution.
+
+###3) gcda: Embedded system (No file system available)
+This is the same as #2 but the gcov library has to be modfified to  save to data remotely by connecting to a server when __gcov_flush is called.

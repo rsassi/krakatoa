@@ -1,4 +1,5 @@
-module GenTestSuite
+# generate list of relevant tests in Mira format.
+module GenTestSuiteMira
   def self.generateTestSuite(selectedTests, escapeTestNames, outputFile, outputParam)
     # Since at this point there could be many duplicate
     # object file & test pair in the selectedTests, then

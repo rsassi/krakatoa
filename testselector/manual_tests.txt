@@ -1,0 +1,11 @@
+
+At this point testselector doesn't have a test suite to test itself.
+It is therefore recommended to execute this list of tests prior before delivering any changes.
+
+testselector --out tests.txt
+testselector --out tests.txt --list-test-suites
+testselector --out tests.txt --list-test-suites
+testselector --out tests.txt --test-suites all 
+testselector --out tests.txt --function e
+testselector --test-runs 1
+

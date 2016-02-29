@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 require_relative 'database'
-require_relative 'gen_test_suite'
+require_relative 'gen_test_suite_mira'
 
 module TestSuiteFromFunction
 
@@ -39,7 +39,7 @@ module TestSuiteFromFunction
     #Close connection to SQL server
     sqlIf.closeCon
 
-    GenTestSuite::generateTestSuite(selectedTests, escapeTestNames, outputFile, outputParam)
+    GenTestSuiteMira::generateTestSuite(selectedTests, escapeTestNames, outputFile, outputParam)
 
   end
 end

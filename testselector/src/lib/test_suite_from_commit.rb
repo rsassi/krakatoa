@@ -2,7 +2,7 @@
 
 require_relative 'git'
 require_relative 'database'
-require_relative 'gen_test_suite'
+require_relative 'gen_test_suite_mira'
 
 module TestSuiteFromCommit
   # Creates a test suite with the name specified by "outputFile" using the
@@ -69,6 +69,6 @@ module TestSuiteFromCommit
     #Close connection to SQL server
     sqlIf.closeCon
 
-    GenTestSuite::generateTestSuite(selectedTests, escapeTestNames, outputFile, outputParam)
+    GenTestSuiteMira::generateTestSuite(selectedTests, escapeTestNames, outputFile, outputParam)
   end
 end
