@@ -29,7 +29,7 @@ OPTIONALLY ENCLOSED BY '"'
 ESCAPED BY '@' -- little hack to handle "\" delimiters in file paths
 LINES TERMINATED BY '\n'
 IGNORE 1 LINES -- ignore header
-(id, mangled_name, name, path)
+(id, test_group_id, mangled_name, name, path, execution_time_secs, passed, failed )
 SET testrun_id = @testrun_id
 ;
 
@@ -67,5 +67,17 @@ ESCAPED BY '@' -- little hack to handle "\" delimiters in file paths
 LINES TERMINATED BY '\n'
 IGNORE 1 LINES -- ignore header
 (test_id,function_id,visited)
+SET testrun_id = @testrun_id
+;
+
+
+-- ----------------------------------------------------------------------
+LOAD DATA LOCAL INFILE 'c:/data/test_groups.csv'
+INTO TABLE test_groups
+COLUMNS TERMINATED BY ','
+OPTIONALLY ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES -- ignore header
+(id, name)
 SET testrun_id = @testrun_id
 ;

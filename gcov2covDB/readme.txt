@@ -43,5 +43,5 @@ module add
 java -jar /home/eseprud/share/gcov2covDB/gcov2covDB.jar /local/scratch/eswradio/radio_SmartTest_00/gcov/ gcov_results/mira_summary.yaml gcov_results/function_map.csv /home/eseprud/share/gcov2covDB/func_filter.yaml
 
 # to test on sample data: 
-java -jar gcov2covDB.jar tests mira_summary.yaml fun_map.csv func_filter.yaml
+java -jar gcov2covDB.jar tests mira_summary.yaml function_map.csv func_filter.yaml
 

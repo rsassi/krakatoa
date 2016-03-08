@@ -23,17 +23,19 @@ import com.opencsv.CSVWriter;
 public class Gcov2FuncCoverageDB {
 	private static final boolean verbose = false;
 	private static final String TESTS_CSV = "tests.csv";
+	private static final String TEST_GROUPS_CSV = "test_groups.csv";
 	private static final String SOURCE_FILES_CSV = "source_files.csv";
 	private static final String FUNCTIONS_CSV = "functions.csv";
 	private static final String FUNCCOV_CSV = "funccov.csv";
 	private static final String NEW_LINE_DELIMITER = "\n";
 
-	Vector<Pattern> m_regex_func_patterns				 = new Vector<Pattern>();
-	Map<Integer, TestTableEntry> m_tests_map			  = new HashMap<Integer, TestTableEntry>();
-	Map<String, Integer> m_source_files_map			   = new HashMap<String, Integer>();
-	Map<String, FunctionsTableEntry> m_functions_map				  = new HashMap<String, FunctionsTableEntry>();
-	Map<String, String> m_mangled_func_map				= new HashMap<String, String>();
-	Map<String, TestCaseTableEntry> m_mangled_tests_map   = new HashMap<String, TestCaseTableEntry>();
+	Vector<Pattern> m_regex_func_patterns			  = new Vector<Pattern>();
+	Map<String, Integer> m_source_files_map			  = new HashMap<String, Integer>();
+	Map<String, FunctionsTableEntry> m_functions_map  = new HashMap<String, FunctionsTableEntry>();
+	Map<String, String> m_mangled_func_map			  = new HashMap<String, String>();
+	Map<String, Integer> m_test_mangled_to_id_map     = new HashMap<String, Integer>();
+	Map<String, TestTableEntry> m_tests_map           = new HashMap<String, TestTableEntry>();
+	Map<Integer, String> m_test_group_names_map       = new HashMap<Integer, String>();
 	Pattern m_func_pattern = Pattern
 			.compile("^function\\s+(.*?)\\s+called\\s+(\\d+)\\s+returned\\s+(\\d+)%\\s+blocks\\s+executed\\s+(\\d+)%");
 	Pattern m_file_pattern = Pattern.compile("\\.cc\\.gcov$");
@@ -44,15 +46,15 @@ public class Gcov2FuncCoverageDB {
 	 * tests mira_summary.yaml function_map.csv func_filter.yaml
 	 */
 	public static void main(String[] args) {
-		String testDataDirectory  = null;
+		String testDataDirectory    = null;
 		String mangled_tests_file = null;
-		String mangled_func_file  = null;
+		String mangled_func_file    = null;
 		String filter_file		= null;
 		if (args.length == 0 ) {
 			System.err.println("No parameters passed. Running with default test values.");
-			testDataDirectory  = "tests";
+			testDataDirectory    = "tests";
 			mangled_tests_file = "mira_summary.yaml";
-			mangled_func_file  = "function_map.csv";
+			mangled_func_file    = "function_map.csv";
 			filter_file		= "func_filter.yaml";
 		} else {
 			if (args.length != 4) {
@@ -92,7 +94,6 @@ public class Gcov2FuncCoverageDB {
 	private void initMaps(String directory, String mangled_tests_file,
 			String mangled_func_file)
 			throws IOException {
-		int tests_map_index = 1;
 		File folder = new File(directory);
 		/* Table Column Headers */
 		String test_mangled;
@@ -111,15 +112,11 @@ public class Gcov2FuncCoverageDB {
 				System.err.println("Could not get path for " + subfolder.toString());
 				System.exit(1);
 			}
-			TestCaseTableEntry tcEntry = m_mangled_tests_map.get(test_mangled);
-			if (null == tcEntry){
-				System.err.println("Could not get entry for mangled test name: " + test_mangled);
+			Integer tests_map_index = m_test_mangled_to_id_map.get(test_mangled);
+			if (tests_map_index == null){
+				System.err.println("Could not get test id for " + test_mangled);
 				System.exit(1);
 			}
-			String test_demangled = tcEntry.getName();
-			String test_path =tcEntry.getPath();
-			TestTableEntry test_table_entry = new TestTableEntry(test_mangled, test_demangled, test_path);
-			m_tests_map.put(tests_map_index, test_table_entry);
 			if (subfolder.isDirectory()) {
 				/*
 				 * Directory parser fills the other two hash maps and generates
@@ -128,7 +125,6 @@ public class Gcov2FuncCoverageDB {
 				processDirectoryAndSubdirectories(subfolder, tests_map_index,
 						test_mangled, funccovWriter);
 			}
-			tests_map_index++; // Unique Test ID for each entry.
 		}
 		funccovWriter.flush();
 		funccovWriter.close();
@@ -136,6 +132,7 @@ public class Gcov2FuncCoverageDB {
 	}
 	
 	public void generateOtherCSVs() {
+		generateTestGroupsCsv(TEST_GROUPS_CSV);
 		generateTestsCsv(TESTS_CSV);
 		generateSourceFilesCsv(SOURCE_FILES_CSV);
 		generateFunctionsCsv(FUNCTIONS_CSV);
@@ -144,20 +141,45 @@ public class Gcov2FuncCoverageDB {
 
 	private void parseTestInfoYaml(String yamlFile) {
 		try {
+			int test_index = 0;
+			int test_group_index = 0;
 			YamlReader reader = new YamlReader(new FileReader(yamlFile));
 			Object object = reader.read();
-			TestCaseTableEntry entry = new TestCaseTableEntry();
 			ArrayList<Map> list = (ArrayList<Map>) object;
 			ArrayList<Map> list_nested = null;
 			for (int i = 0; i < list.size(); i++) {
+				Object test_group_name = list.get(i).get("name");
+				if ((null == test_group_name) ){
+					System.err.println("No test group name for test group: Test #"+test_group_index+" in " + yamlFile);
+					System.exit(1);
+				}
+				test_group_index++;
+				m_test_group_names_map.put(test_group_index, test_group_name.toString());
 				list_nested = (ArrayList<Map>) list.get(i).get("testcases");
 				for (int j = 0; j < list_nested.size(); j++) {
-					entry = new TestCaseTableEntry(list_nested.get(j)
-							.get("mangled_name_hash").toString(), list_nested
-							.get(j).get("name").toString(), list_nested.get(j)
-							.get("path").toString());
-					m_mangled_tests_map.put(list_nested.get(j).get("mangled_name")
-							.toString(), entry);
+					Object mangled_name = list_nested.get(j).get("mangled_name");
+					Object name = list_nested.get(j).get("name");
+					Object path = list_nested.get(j).get("path");
+					Object execution_time_secs = list_nested.get(j).get("execution_time_secs");
+					Object passed = list_nested.get(j).get("pass");
+					Object failed = list_nested.get(j).get("fail");
+					test_index++; // Unique Test ID for each entry.
+					if ((null == mangled_name) || (null==name)|| (null==path)|| (null==execution_time_secs)|| (null==passed)|| (null==failed)){
+						System.err.println("Test #"+test_index+", missing one of {mangled_name, name, path, execution_time_secs, pass, fail}  in " + yamlFile);
+						System.exit(1);
+					}
+					TestTableEntry entry = new TestTableEntry(
+							test_index,
+							test_group_index,
+							mangled_name.toString(),
+							name.toString(), 
+							path.toString(),
+							execution_time_secs.toString(),
+							passed.toString(),
+							failed.toString()
+							);
+					m_tests_map.put(mangled_name.toString(), entry);
+					m_test_mangled_to_id_map.put(mangled_name.toString(), test_index);
 				}
 			}
 		} catch (FileNotFoundException e) {
@@ -203,19 +225,19 @@ public class Gcov2FuncCoverageDB {
 		return regexes;
 	}
 
-	private  void parseFunctionMangledDemangledNameCsv( String csvFile) {
+	private    void parseFunctionMangledDemangledNameCsv( String csvFile) {
 		Integer count =0;
 		Integer duplicateCount =0;
 		try {// OpenCSV CSVReader doesn't handle large csv files and fails silently... Use BufferedReader instead.
-			System.out.println("parsing:  " + csvFile );
+			System.out.println("parsing:    " + csvFile );
 			FileInputStream istream = new FileInputStream(csvFile);
 			InputStreamReader iReader = new InputStreamReader(istream);
 			BufferedReader buffReader = new BufferedReader(iReader);
 			String line= null;
 			while ((line = buffReader.readLine()) != null) {
-				 	int secondQuotes =  line.indexOf('"', 1);
+				 	int secondQuotes =    line.indexOf('"', 1);
 				 	String key = line.substring(1, secondQuotes);
-				 	int thirdQuotes =  line.indexOf('"', secondQuotes+1); 
+				 	int thirdQuotes =    line.indexOf('"', secondQuotes+1); 
 				 	String value = line.substring(thirdQuotes+1, line.length()-1); //-1 to exclude closing quotes
 					String prevValue = m_mangled_func_map.put(key, value);
 					//System.out.println("key("+key+")"+"value("+value+")" );
@@ -281,7 +303,7 @@ public class Gcov2FuncCoverageDB {
 							}
 						}
 						if (!ignoreFunc) { 
-							FunctionsTableEntry functionEntry=  m_functions_map.get(func_mangled);
+							FunctionsTableEntry functionEntry =  m_functions_map.get(func_mangled);
 							Integer function_id = null;
 							if (null == functionEntry){
 								String func_demangled = m_mangled_func_map
@@ -331,21 +353,50 @@ public class Gcov2FuncCoverageDB {
 	}
 
 	public void generateTestsCsv(String fileName) {
-		final String file_header = "id,mangled_name,name,path";
+		final String file_header = "id,group_id,mangled_name,name,path,execution_time_secs,passed,failed";
 		CSVWriter writer = null;
 		String[] record = file_header.split(",");
 		try {
 			writer = new CSVWriter(new FileWriter(fileName));
 			writer.writeNext(record);
-			for (Entry<Integer, TestTableEntry> entry : m_tests_map.entrySet()) {
-				record[0] = String.valueOf(entry.getKey());
-				record[1] = entry.getValue().getMangledName();
-				record[2] = entry.getValue().getDemangledName();
-				record[3] = entry.getValue().getPath();
+			for (Entry<String, TestTableEntry> entry : m_tests_map.entrySet()) {
+				record[0] = entry.getValue().id.toString();
+				record[1] = entry.getValue().group_id.toString();
+				record[2] = entry.getValue().mangled_name;
+				record[3] = entry.getValue().name;
+				record[4] = entry.getValue().path;
+				record[5] = entry.getValue().execution_time_secs;
+				record[6] = entry.getValue().passed;
+				record[7] = entry.getValue().failed;
 				writer.writeNext(record);
 			}
 			System.out.println(fileName + " created successfully.");
-
+		} catch (IOException e) {
+			System.out.println("Error generating " + fileName);
+			System.exit(1);
+		} finally {
+			try {
+				writer.flush();
+				writer.close();
+			} catch (IOException e) {
+				System.out.println("Error closing " + fileName);
+				System.exit(1);
+			}
+		}
+	}
+	public void generateTestGroupsCsv(String fileName) {
+		final String file_header = "id,name";
+		CSVWriter writer = null;
+		String[] record = file_header.split(",");
+		try {
+			writer = new CSVWriter(new FileWriter(fileName));
+			writer.writeNext(record);
+			for (Entry<Integer, String> entry : m_test_group_names_map.entrySet()) {
+				record[0] = entry.getKey().toString();
+				record[1] = entry.getValue();
+				writer.writeNext(record);
+			}
+			System.out.println(fileName + " created successfully.");
 		} catch (IOException e) {
 			System.out.println("Error generating " + fileName);
 			System.exit(1);

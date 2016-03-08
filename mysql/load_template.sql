@@ -5,7 +5,7 @@ Limitation:  LOAD DATA INFILE @variable is not supported (https://bugs.mysql.com
 Workaround: replace with sed prior to calling the SQL script:
 cat /home/eseprud/share/smarttest/gcov2covDB/mysql/load_template.sql | sed s/_TEST_RESULTS_ID_/$TEST_RESULTS_ID/g | sed s/_TEST_POSITION_/$POSITION/g | sed s/_GIT_COMMIT_/`git --git-dir $WORKSPACE/radiosw/.git rev-parse HEAD`/g |  sed s/_TEST_FRAMEWORK_/mira/g |  sed s/_TEST_SUITE_/$TEST_SUITE/g | sed s/_FILE_PATH_/$PWD/g > load_mysql_now.sql
 
-mysql -u smartuser -p\67a5GyJ9 -P 3520 -h esekilx0007-sql8.rnd.ki.sw.ericsson.se < load_mysql_now.sql
+mysql -u smartuser -ppassword -P 3520 -h esekilx0007-sql8.rnd.ki.sw.ericsson.se < load_mysql_now.sql
 
 */
 
@@ -34,7 +34,7 @@ COLUMNS TERMINATED BY ','
 OPTIONALLY ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
 IGNORE 1 LINES -- ignore header
-(id, mangled_name, name, path)
+(id, test_group_id, mangled_name, name, path, execution_time_secs, passed, failed )
 SET testrun_id = @testrun_id
 ;
 
@@ -69,5 +69,16 @@ OPTIONALLY ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
 IGNORE 1 LINES -- ignore header
 (test_id,function_id,visited)
+SET testrun_id = @testrun_id
+;
+
+-- ----------------------------------------------------------------------
+LOAD DATA LOCAL INFILE '_FILE_PATH_/test_groups.csv'
+INTO TABLE test_groups
+COLUMNS TERMINATED BY ','
+OPTIONALLY ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES -- ignore header
+(id, name)
 SET testrun_id = @testrun_id
 ;

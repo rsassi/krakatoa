@@ -5,6 +5,9 @@ The goals:
 * test selection using historical coverage data
 * test to source code traceability
 
+Assumptions:
+- see mysql/create.sql for details on DB schema and assumptions on uniqueness.
+- testselector assumes all test names are not generated at run time. Thus allowing us to select them prior to execution.
 
 This project includes
 * An example on how per test coverage data can be generated with gcov and loaded into MySQL

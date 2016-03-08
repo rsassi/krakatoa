@@ -1,43 +1,33 @@
 package gcov2covDB;
 
 public class TestTableEntry {
-	
-	private String mangled_name;
-	private String demangled_name;
-	private String path;
-	
-	public TestTableEntry(String mangled, String demangled, String path) {
-		setMangledName(mangled);
-		setDemangledName(demangled);
-		setPath(path);
-	}
-	
-	public String getMangledName() {
-		return mangled_name;
-	}
-	
-	public String getDemangledName() {
-		return demangled_name;
-	}
-	
-	public String toString() {
-		return "Mangled Name: " + getMangledName() + "\n\tDemangled Name: " + getDemangledName() + "\n";
-	}
-	
-	public void setMangledName(String name) {
-		mangled_name = name;
-	}
-	
-	public void setDemangledName(String name) {
-		demangled_name = name;
-	}
-
-	public void setPath(String path) {
-		this.path = path;
-	}
-	public String getPath() {
-		return this.path;
-	}
-
-
+public	
+     Integer id;
+     Integer group_id;
+	 String mangled_name;
+	 String name;
+	 String path;
+	 String execution_time_secs;
+	 String passed;
+	 String failed;
+	 
+		public TestTableEntry(
+				Integer the_id,
+				Integer the_group_id,
+				String the_mangled_name,
+				String the_name, 
+				String full_path,
+				String the_execution_time_secs,
+				String did_pass,
+				String did_fail
+				) {
+			id  = the_id;
+			group_id  = the_group_id;
+			mangled_name= the_mangled_name;
+			name = the_name;
+			path = full_path;
+			execution_time_secs = the_execution_time_secs;
+			passed = did_pass;
+			failed = did_fail;
+		}
 }

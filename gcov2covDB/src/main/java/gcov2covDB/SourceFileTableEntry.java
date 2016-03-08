@@ -4,20 +4,7 @@ public class SourceFileTableEntry {
 	
 	private String name;
 
-	public SourceFileTableEntry(String name) {
-		setName(name);
+	public SourceFileTableEntry(String the_name) {
+		name = the_name;	
 	}
-	
-	public String getName() {
-		return name;
-	}
-	
-	public String toString() {
-		return "Name: " + getName() + "\n";
-	}
-	
-	public void setName(String name) {
-		this.name = name;
-	}
-
 }

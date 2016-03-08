@@ -87,11 +87,11 @@ public class DirectoryCoverageHtmlReport {
             {
                 Connection dbConnection = connectToDb();
                 String selectStmt = "SELECT f_exec_count, fcount, (f_exec_count/fcount * 100.0) as ratio "
-                        + "FROM (SELECT SUM(visited) as f_exec_count, COUNT(DISTINCT func_mangled) as fcount "
+                        + "FROM (SELECT SUM(f_exec_count) as f_exec_count, COUNT(DISTINCT func_mangled) as fcount "
                         + "FROM (SELECT  "
                         + "source_files.name as source_file, "
                         + "functions.source_line as source_line, functions.name as function, functions.mangled_name as func_mangled, "
-                        + "sum(visited) as f_exec_count "
+                        + "sum(funccov.visited) as f_exec_count "
                         + "FROM  "
                         + "testruns "
                         + "INNER JOIN tests ON testruns.id = tests.testrun_id "
