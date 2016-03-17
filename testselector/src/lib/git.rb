@@ -20,6 +20,12 @@ module GitWrapper
     File.join(File.expand_path(File.dirname(__FILE__)), '..', 'cfg')
   end
 
+  # get list of modified files in commit
+  def self.getModifiedFiles(commit)
+    output = `git show --format="format:" --name-only --diff-filter="M" -m #{commit}`
+    output.split("\n").select {|file| file != ""}
+  end
+
   # Function auto-detects and returns git repo root
   # e.g. /repo/esignum/radiosw/
   def self.getRepoRoot
@@ -29,7 +35,7 @@ module GitWrapper
 
   # Function returns top-level commit SHA ID
   def self.getDefaultCommitHash()
-    commitId = `git rev-parse HEAD`
+    commitId = `git rev-parse HEAD`[0..-2]
     return commitId
   end
 

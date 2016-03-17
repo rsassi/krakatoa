@@ -1,22 +1,79 @@
 # generate list of relevant tests in Mira format.
+require_relative 'database'
+
 module GenTestSuiteMira
-  def self.generateTestSuite(selectedTests, escapeTestNames, outputFile, outputParam)
+  TESTPOSITION_HEADER =  ['Position', 'Test suite                 ', 'Total', 'Selected', 'Total(mins)', 'Selected(mins)', 'Est. savings(mins)','Testrun',]
+  TESTPOSITION_STR_FORMAT = TESTPOSITION_HEADER.map {|str| "%-#{str.size}s" }.join(" ")
+
+  def self.printSavings(testposition_hash)
+    puts "The following table shows the time savings if the selected tests were executed on the same test positions:"
+    puts(TESTPOSITION_STR_FORMAT % TESTPOSITION_HEADER)  # Print out the header
+    puts(TESTPOSITION_STR_FORMAT % Array.new(TESTPOSITION_HEADER.length, '-'))
+    testposition_hash.each  do |key, hash|
+      row= [hash['testposition'], hash['testsuite'], hash['total_count'], hash['count'], hash['total_time']/60, hash['execution_time_secs']/60, (hash['total_time'] - hash['execution_time_secs'])/60, key, ]
+      puts(TESTPOSITION_STR_FORMAT % row)
+    end
+  end
+
+  def self.addTotalCounts(sqlIf, per_testrun_counts)
+    testruns = per_testrun_counts.keys
+    total_counts = sqlIf.getTotalCounts(testruns)
+    total_counts.each do |row|
+      testrun_id = row[0] 
+      per_testrun_counts[testrun_id]['total_count'] = row[1]
+      per_testrun_counts[testrun_id]['total_time']  = row[2]
+    end
+  end
+
+  def self.validateTestModules(testModules)
+    warnings = []
+    testModules.uniq! 
+    # check that the file names are still valid
+    testModules.delete_if
+    testModules.each do |file|
+      fileNotPresent = !File.file?(file)
+      if (fileNotPresent)
+        warnings.push("Warning: A file wasn't found in the repo. It was renamed or removed since the last time coverage data was collected: #{file}")
+      end
+      fileNotPresent
+    end
+    warnings
+  end
+
+  def self.addTestData(test, per_testrun_counts)
+    testrun_id = test[4]
+    testposition = test[5]
+    testsuite= test[6]
+    execution_time_secs = test[3].to_i
+    if (per_testrun_counts[testrun_id].nil?)
+      per_testrun_counts[testrun_id] = {}
+      per_testrun_counts[testrun_id]['count'] =0
+      per_testrun_counts[testrun_id]['execution_time_secs'] =0
+    end
+    per_testrun_counts[testrun_id]['testposition'] = testposition
+    per_testrun_counts[testrun_id]['testsuite']  = testsuite
+    per_testrun_counts[testrun_id]['count'] = per_testrun_counts[testrun_id]['count'] + 1
+    per_testrun_counts[testrun_id]['execution_time_secs'] = per_testrun_counts[testrun_id]['execution_time_secs'] + execution_time_secs
+  end
+
+  # input:   array[]
+  #[tests.path, tests.name, tests.mangled_name, 
+  # tests.execution_time_secs, testrun_id, testruns.testposition, testruns.testsuite ]
+  def self.generateTestSuite(selectedTests, escapeTestNames, outputFile, outputParam, sqlIf)
+    per_testrun_counts= {}
     # Since at this point there could be many duplicate
     # object file & test pair in the selectedTests, then
     # we should first get rid of those duplicates; this
     # is one (kludgy) way of doing it
     testModules = Array.new
-    selectedTests.each do |test|
-      testModules.push(test[0])
-    end
-    testModules.uniq! # Get rid of duplicates
-
     tests = Array.new
     selectedTests.each do |test|
+      testModules.push(test[0])
       tests.push(test[1])
+      addTestData(test, per_testrun_counts)
     end
-    tests.uniq! # Get rid of duplicates
-
+    tests.uniq!
+    warnings = validateTestModules(testModules)
     if (outputFile.nil?)
       outputFile = outputParam['defaultFileName']
     end
@@ -44,7 +101,9 @@ module GenTestSuiteMira
     end
     st.write(")$'\n")
     st.close
-
+    addTotalCounts(sqlIf, per_testrun_counts)
+    printSavings( per_testrun_counts)
     puts "New  suite created: " + outputFile
+    warnings.each {|warning| $stderr.puts warning}
   end
 end

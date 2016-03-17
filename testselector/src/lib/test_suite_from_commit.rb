@@ -18,15 +18,9 @@ module TestSuiteFromCommit
     # deleted file(s), so they wil be excluded. In addition, for new
     # files there is no regression test yet, so they will also be
     # excluded.
-    tempStr = String.new
     commitFiles = Array.new
     commits.each do |commit|
-      commit = commit.sub("+ ", "")# Remove the leading "+ " from the commit string
-      tempStr.clear
-      tempStr = `git show --format="format:" --name-only --diff-filter="M" #{commit}`
-      commitFiles.concat(tempStr.split "\n")
-      # TODO: Handle the empty file string in the array, for now let it
-      #       be in the array and it will be ignored
+      commitFiles.concat(GitWrapper::getModifiedFiles(commit))
     end
 
     # For every modified file to be delivered (i.e., the file in the
@@ -37,7 +31,10 @@ module TestSuiteFromCommit
 
     #Remove unrelated files to speed-up processing
     selectedFiles = GitWrapper::pruneFileList(commitFiles, gitParam)
-
+    if (selectedFiles.size == 0)
+      $stderr.puts "Error: No C++ files found in commit"
+      exit 1
+    end
     puts "Searching which tests in #{testSuites.to_s} exercise code in one of the following .cc files from #{commits.map{ |x| x[0,16]}}:"
     puts selectedFiles.to_s
 
@@ -50,7 +47,7 @@ module TestSuiteFromCommit
       testRuns = sqlIf.getTestrunsFromTestSuites(testSuites);
     end
     if (testRuns.empty?)
-      puts "Error: no test run found for criteria"
+      $stderr.puts "Error: no test run found for criteria"
       exit(1)
     end
     if (debug)
@@ -66,9 +63,9 @@ module TestSuiteFromCommit
     coverageRatio = sprintf("%3.2f", (selectedTestsCount.to_f/testCount*100.0))
     puts "For #{fileCount} C++ files in commit #{commits.map{ |x| x[0,16]}}, identified #{selectedTestsCount.to_s} relevant tests out of #{testCount.to_s}(#{coverageRatio}%)"
 
+    GenTestSuiteMira::generateTestSuite(selectedTests, escapeTestNames, outputFile, outputParam, sqlIf)
+
     #Close connection to SQL server
     sqlIf.closeCon
-
-    GenTestSuiteMira::generateTestSuite(selectedTests, escapeTestNames, outputFile, outputParam)
   end
 end

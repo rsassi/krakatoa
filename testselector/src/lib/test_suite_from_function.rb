@@ -36,10 +36,9 @@ module TestSuiteFromFunction
     coverageRatio = sprintf("%3.2f", (selectedTestsCount.to_f/testCount*100.0))
     puts "For #{matchingFunctionCount} matching functions, identified #{selectedTestsCount.to_s} relevant tests out of #{testCount.to_s}(#{coverageRatio}%)"
 
+    GenTestSuiteMira::generateTestSuite(selectedTests, escapeTestNames, outputFile, outputParam, sqlIf)
+
     #Close connection to SQL server
     sqlIf.closeCon
-
-    GenTestSuiteMira::generateTestSuite(selectedTests, escapeTestNames, outputFile, outputParam)
-
   end
 end

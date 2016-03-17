@@ -1,7 +1,6 @@
 require 'mysql'
 
 module CoverageDatabase
-
   #Class which manages the connection to the MySQL server
   class MySqlIf
     #Constructor
@@ -97,7 +96,7 @@ module CoverageDatabase
     end
 
     # Ugly, but better than iterating over the table twice
-    TESTRUN_STR_FORMAT = "%-15s %-10s %-8s %-20s %-10s %-10s"
+    TESTRUN_STR_FORMAT = "%-15s %-10s %-8s %-26s %-10s %-10s"
 
     def createTestrunQuery(whereClause)
       query = %Q[SELECT `testposition` AS 'Test Position',
@@ -130,7 +129,7 @@ module CoverageDatabase
       rows
     end
 
- public
+    public
 
     # Prints out the SmartTest execution table, as obtained from fetchTestRunTableData
     # in a nicely formatted manner, to the standard output.
@@ -173,8 +172,34 @@ module CoverageDatabase
       testsuites = rows.map{ | row| row.map{|key, value| value } }.flatten
     end
 
-    def createTestQuery(testRuns, whereClause)
-      sqlQuery = %Q[SELECT tests.path as path, tests.name as name, tests.mangled_name as mangled_name
+    def getTotalCounts(testRuns)
+      totalCounts = Array.new
+      begin
+        testrunSection = createTestrunWhereClause(testRuns)
+        testrunSection = testrunSection.gsub('testruns.id', 'tests.testrun_id')
+        sqlQuery = %Q[SELECT tests.testrun_id, COUNT(tests.id) as total_count, SUM(tests.execution_time_secs) as total_time_secs
+              FROM tests
+              WHERE #{testrunSection}
+              GROUP BY tests.testrun_id]
+        if(@debug)
+          puts "sqlQuery= #{sqlQuery}"
+        end
+        rs = @con.query(sqlQuery)
+        rs.num_rows.times do
+          row = rs.fetch_row
+          totalCounts.push([row[0], row[1].to_i, row[2].to_i ])
+        end
+        return totalCounts
+      rescue Mysql::Error => e
+        puts "MySqlIf> Error during MySQL database query: #{e}"
+        exit 1
+      end
+    end
+
+    def createTestQuery(whereClause)
+      sqlQuery = %Q[SELECT tests.path as path, tests.name as name,
+              tests.mangled_name, tests.execution_time_secs,
+              testruns.id as testrun_id, testruns.testposition, testruns.testsuite
               FROM testruns
               INNER JOIN tests ON testruns.id = tests.testrun_id
               INNER JOIN source_files ON source_files.testrun_id = testruns.id
@@ -182,11 +207,12 @@ module CoverageDatabase
               INNER JOIN funccov ON funccov.testrun_id = testruns.id and funccov.test_id = tests.id and funccov.function_id = functions.id
               WHERE #{whereClause}
               AND funccov.visited
-              GROUP BY tests.mangled_name]
+              GROUP BY testruns.id, testruns.testposition, tests.mangled_name]
     end
 
     # Function returns the set of test cases associated with the provided filesname
     # by querying the database
+    # output : array[][tests.path, tests.name, tests.mangled_name, testruns.testposition ]
     def lookupFilename(filenames, testRuns)
       testNames = Array.new
       if filenames.nil?
@@ -205,7 +231,7 @@ module CoverageDatabase
       begin
         sourceFilesSection = createSourceFileSection(filenames)
         testrunSection = createTestrunWhereClause(testRuns)
-        sqlQuery = createTestQuery(testRuns, "#{testrunSection} AND #{sourceFilesSection}")
+        sqlQuery = createTestQuery("#{testrunSection} AND #{sourceFilesSection}")
         if(@debug)
           puts "sqlQuery= #{sqlQuery}"
         end
@@ -232,7 +258,7 @@ module CoverageDatabase
         testrunSection = createTestrunWhereClause(testRuns)
         functionName = function.gsub(/::/, '%')
         functionSection = "functions.mangled_name LIKE '%#{functionName}%'"
-        sqlQuery = createTestQuery(testRuns, "#{testrunSection} AND #{functionSection}")
+        sqlQuery = createTestQuery("#{testrunSection} AND #{functionSection}")
         if(@debug)
           puts "sqlQuery= #{sqlQuery}"
         end
