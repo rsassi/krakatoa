@@ -82,8 +82,8 @@ END_OF_BANNER
         options[:test_suites] = test_suites_string
       end
 
-      opts.on("--function f1", String, "A class and/or function name.#{TEXT_INDENT}Selects all tests calling that function.#{TEXT_INDENT}Only valid with --create.") do |function|
-        options[:function] = function
+      opts.on("--functions f1,f2,f3", Array, "A list of class and/or function names.#{TEXT_INDENT}Selects all tests calling that function.#{TEXT_INDENT}Only valid with --create.") do |functions|
+        options[:functions] = functions
       end
 
       opts.on_tail("-n", "--dont-escape-test-names", "Avoid escaping regular expression characters in test names.#{TEXT_INDENT}WARNING! Only provided to improve human readability.") do
@@ -143,7 +143,7 @@ if __FILE__ == $PROGRAM_NAME
       end
       options[:test_suites] = ["regression.mira"]
     end
-    if (options[:commit_ids].nil? && options[:function].nil?  )
+    if (options[:commit_ids].nil? && options[:functions].nil?  )
       if (options[:debug])
         puts "Didn't specify one of: [ --id | --function ], using default: --id HEAD"
       end
@@ -156,22 +156,20 @@ if __FILE__ == $PROGRAM_NAME
       STDERR.puts("--test-suites and --test-runs are mutually exclusive.")
       exit 1
   end
-  if (options[:commit_ids] && options[:function]) 
+  if (options[:commit_ids] && options[:functions]) 
       STDERR.puts("--id and --function are mutually exclusive.")
       exit 1
   end
 
   if (options[:test_suites] && options[:test_suites].include?('all'))
-    options[:test_suites] = TestExecution::list_test_suites(options[:debug], @dbParam)
+    options[:test_suites] = TestExecution::get_test_suites(options[:debug], @dbParam)
   end
-
   if options[:create].nil? && options[:list_test_runs].nil? && options[:list_test_suites].nil?
     STDERR.puts("One of {--create, --list-test-runs, --list-test-suites } is mandatory.")
     exit 1
   elsif options[:create] && options[:list_test_runs]
     STDERR.puts("--create and --list-test-runs are mutually exclusive.")
     exit 1
-
   elsif options[:create]
     # Check to see if preconditions for running script are met
     if !GitWrapper::isInRepo()
@@ -179,12 +177,11 @@ if __FILE__ == $PROGRAM_NAME
     end
     if options[:commit_ids]
       TestSuiteFromCommit::create_test_suite(options[:commit_ids], options[:test_runs], options[:test_suites], options[:debug], options[:escapeTestNames], options[:output_file], @dbParam, @gitParam, @outputParam)
-    elsif options[:function]
-      TestSuiteFromFunction::create_test_suite(options[:function], options[:test_runs], options[:test_suites], options[:debug], options[:escapeTestNames], options[:output_file], @dbParam, @outputParam)
+    elsif options[:functions]
+      TestSuiteFromFunction::create_test_suite(options[:functions], options[:test_runs], options[:test_suites], options[:debug], options[:escapeTestNames], options[:output_file], @dbParam, @outputParam)
     end
-
   elsif options[:list_test_runs]
-    TestExecution::list_test_executions( options[:debug], @dbParam)
+    TestExecution::list_testruns( options[:debug], @dbParam)
   elsif options[:list_test_suites]
     TestExecution::list_test_suites(options[:debug], @dbParam)
   end

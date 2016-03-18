@@ -35,9 +35,21 @@ module TestSuiteFromCommit
       $stderr.puts "Error: No C++ files found in commit"
       exit 1
     end
-    puts "Searching which tests in #{testSuites.to_s} exercise code in one of the following .cc files from #{commits.map{ |x| x[0,16]}}:"
-    puts selectedFiles.to_s
-
+    puts "Searching for tests in:"
+    if (testSuites.nil?)
+      testRuns.each do |testRun|
+        puts "\t#{testRun}"
+      end
+    else
+      testSuites.each do |testsuite|
+        puts "\t#{testsuite}"
+      end
+    end
+    puts "Which exercise code in one of the following files:"
+    selectedFiles.each do |file|
+      puts "\t#{file}"
+    end
+    puts "Which were modified in #{commits}"
     sqlIf = CoverageDatabase::MySqlIf.new(debug, dbParam)
 
     #Open connection to SQL server
@@ -50,10 +62,6 @@ module TestSuiteFromCommit
       $stderr.puts "Error: no test run found for criteria"
       exit(1)
     end
-    if (debug)
-      puts "Using coverage data from:"
-      sqlIf.printTestRuns(testRuns)
-    end
 
     #Fetch  tests which execute the files changed in this commit
     selectedTests = sqlIf.lookupFilename(selectedFiles, testRuns)
@@ -61,7 +69,7 @@ module TestSuiteFromCommit
     testCount = Integer(sqlIf.getTotalTestCount(testRuns))
     selectedTestsCount = selectedTests.size()
     coverageRatio = sprintf("%3.2f", (selectedTestsCount.to_f/testCount*100.0))
-    puts "For #{fileCount} C++ files in commit #{commits.map{ |x| x[0,16]}}, identified #{selectedTestsCount.to_s} relevant tests out of #{testCount.to_s}(#{coverageRatio}%)"
+    puts "For #{fileCount} files in commit #{commits}, identified #{selectedTestsCount.to_s} relevant tests out of #{testCount.to_s}(#{coverageRatio}%)"
 
     GenTestSuiteMira::generateTestSuite(selectedTests, escapeTestNames, outputFile, outputParam, sqlIf)
 

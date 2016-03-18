@@ -101,8 +101,10 @@ module GenTestSuiteMira
     end
     st.write(")$'\n")
     st.close
-    addTotalCounts(sqlIf, per_testrun_counts)
-    printSavings( per_testrun_counts)
+    if (per_testrun_counts.size > 0)
+      addTotalCounts(sqlIf, per_testrun_counts)
+      printSavings( per_testrun_counts)
+    end
     puts "New  suite created: " + outputFile
     warnings.each {|warning| $stderr.puts warning}
   end

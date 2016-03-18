@@ -22,7 +22,6 @@ module CoverageDatabase
       @con.close if @con
     end
 
-    private
 
     # Function returns the ID of the latest test run
     def getLatestTestRuns()
@@ -95,9 +94,6 @@ module CoverageDatabase
       "( " + testrunSection + " )"
     end
 
-    # Ugly, but better than iterating over the table twice
-    TESTRUN_STR_FORMAT = "%-15s %-10s %-8s %-26s %-10s %-10s"
-
     def createTestrunQuery(whereClause)
       query = %Q[SELECT `testposition` AS 'Test Position',
         FROM_UNIXTIME(`time_added_epoch`, '%Y-%m-%d') AS 'Date',
@@ -131,19 +127,6 @@ module CoverageDatabase
 
     public
 
-    # Prints out the SmartTest execution table, as obtained from fetchTestRunTableData
-    # in a nicely formatted manner, to the standard output.
-    def printTestRuns(testRuns)
-      rows = fetchTestRunTableData(testRuns)
-      return if rows.length == 0
-      puts(TESTRUN_STR_FORMAT % rows[0].keys)  # Print out the header
-      puts(TESTRUN_STR_FORMAT % Array.new(rows[0].length, '-'))
-      rows.each_with_index do |row, idx|
-        puts(TESTRUN_STR_FORMAT % row.values)
-      end
-      testruns = rows.map{ | row| row.map{|key, value| value } }.flatten
-    end
-
     def fetchTestsuiteTableData(testRuns)
       testsuitesWhereClause=''
       if (testRuns)
@@ -160,16 +143,6 @@ module CoverageDatabase
         end
       end
       rows
-    end
-
-    def printTestsuites(testRuns)
-      rows = fetchTestsuiteTableData(testRuns)
-      return if rows.length == 0
-      format_str = "%-20s"
-      rows.each_with_index do |row, idx|
-        puts(format_str % row.values)
-      end
-      testsuites = rows.map{ | row| row.map{|key, value| value } }.flatten
     end
 
     def getTotalCounts(testRuns)
@@ -249,15 +222,14 @@ module CoverageDatabase
 
     # Function returns the set of test cases associated with the provided function
     # by querying the database
-    def lookupFunctionName(function, testRuns)
+    def lookupFunctionName(functions, testRuns)
       testNames = Array.new
-      if function.nil? || testRuns.nil?
+      if functions.nil? || testRuns.nil?
         return testNames
       end
       begin
         testrunSection = createTestrunWhereClause(testRuns)
-        functionName = function.gsub(/::/, '%')
-        functionSection = "functions.mangled_name LIKE '%#{functionName}%'"
+        functionSection = createFunctionsWhereClause(functions, 'functions.mangled_name')
         sqlQuery = createTestQuery("#{testrunSection} AND #{functionSection}")
         if(@debug)
           puts "sqlQuery= #{sqlQuery}"
@@ -328,11 +300,19 @@ module CoverageDatabase
       return testCount
     end
 
-    def getCountOfMatchingFunctions(function, testRuns)
+    # Returns an SQL query section, similar to the following example, for
+    # the test run/execution identifier selection:
+    #   ( testruns.id = '113' OR testruns.id = '114' OR testruns.id = '115' )
+    def createFunctionsWhereClause(functions, name='functions.mangled_name')
+      functionSection = functions.map { |function| "(#{name} LIKE \'%#{function.gsub(/::/, '%')}%\')" }
+      functionSection = functionSection.join(" OR ")
+      "( " + functionSection + " )"
+    end
+
+    def getCountOfMatchingFunctions(functions, testRuns)
       functionCount=''
       testrunWhereClause = createTestrunWhereClause(testRuns, 'testrun_id')
-      functionName = function.gsub(/::/, '%')
-      functionSection = "functions.mangled_name LIKE '%#{functionName}%'"
+      functionSection = createFunctionsWhereClause(functions, 'functions.mangled_name')
       totalfunctionCountQuery = %Q[SELECT count(DISTINCT(mangled_name)) FROM functions
       WHERE #{testrunWhereClause} AND #{functionSection}]
       if (@debug)
