@@ -6,34 +6,46 @@ module GenTestSuiteMira
   TESTPOSITION_STR_FORMAT = TESTPOSITION_HEADER.map {|str| "%-#{str.size}s" }.join(" ")
 
   def self.printSavings(testposition_hash)
+    table = []
+    testposition_hash.each  do |key, hash|
+      row= [hash['testposition'], hash['testsuite'], hash['total_count'], hash['count'], hash['total_time']/60, hash['execution_time_secs']/60, (hash['total_time'] - hash['execution_time_secs'])/60, key, ]
+      table.push(row)
+    end
+    table = table.sort {|a,b| a[0] <=> b[0]}
     puts "The following table shows the time savings if the selected tests were executed on the same test positions:"
     puts(TESTPOSITION_STR_FORMAT % TESTPOSITION_HEADER)  # Print out the header
     puts(TESTPOSITION_STR_FORMAT % Array.new(TESTPOSITION_HEADER.length, '-'))
-    testposition_hash.each  do |key, hash|
-      row= [hash['testposition'], hash['testsuite'], hash['total_count'], hash['count'], hash['total_time']/60, hash['execution_time_secs']/60, (hash['total_time'] - hash['execution_time_secs'])/60, key, ]
+    table.each do | row|
       puts(TESTPOSITION_STR_FORMAT % row)
     end
   end
 
-  def self.addTotalCounts(sqlIf, per_testrun_counts)
-    testruns = per_testrun_counts.keys
-    total_counts = sqlIf.getTotalCounts(testruns)
+  def self.addTotalCounts(sqlIf, testRunsUsed, per_testrun_counts)
+    total_counts = sqlIf.getTotalCounts(testRunsUsed)
     total_counts.each do |row|
-      testrun_id = row[0] 
-      per_testrun_counts[testrun_id]['total_count'] = row[1]
-      per_testrun_counts[testrun_id]['total_time']  = row[2]
+      testrun_id = row[0]
+      if (per_testrun_counts[testrun_id].nil?)
+        per_testrun_counts[testrun_id] = {}
+        per_testrun_counts[testrun_id]['count'] =0
+        per_testrun_counts[testrun_id]['execution_time_secs'] =0
+        per_testrun_counts[testrun_id]['testposition'] = row[1]
+        per_testrun_counts[testrun_id]['testsuite']  = row[2]
+      end
+      #-- add the totals:
+      per_testrun_counts[testrun_id]['total_count'] = row[3]
+      per_testrun_counts[testrun_id]['total_time']  = row[4]
     end
   end
 
   def self.validateTestModules(testModules)
     warnings = []
-    testModules.uniq! 
+    testModules.uniq!
     # check that the file names are still valid
     testModules.delete_if
     testModules.each do |file|
       fileNotPresent = !File.file?(file)
       if (fileNotPresent)
-        warnings.push("Warning: A file wasn't found in the repo. It was renamed or removed since the last time coverage data was collected: #{file}")
+        warnings.push("Warning: A file wasn't found in the repo. It was renamed or removed since the last time coverage data was collected. File was removed from output: #{file}")
       end
       fileNotPresent
     end
@@ -49,6 +61,8 @@ module GenTestSuiteMira
       per_testrun_counts[testrun_id] = {}
       per_testrun_counts[testrun_id]['count'] =0
       per_testrun_counts[testrun_id]['execution_time_secs'] =0
+      per_testrun_counts[testrun_id]['total_count'] = 0
+      per_testrun_counts[testrun_id]['total_time']  = 0
     end
     per_testrun_counts[testrun_id]['testposition'] = testposition
     per_testrun_counts[testrun_id]['testsuite']  = testsuite
@@ -57,9 +71,9 @@ module GenTestSuiteMira
   end
 
   # input:   array[]
-  #[tests.path, tests.name, tests.mangled_name, 
+  #[tests.path, tests.name, tests.mangled_name,
   # tests.execution_time_secs, testrun_id, testruns.testposition, testruns.testsuite ]
-  def self.generateTestSuite(selectedTests, escapeTestNames, outputFile, outputParam, sqlIf)
+  def self.generateTestSuite(testRunsUsed, selectedTests, escapeTestNames, outputFile, outputParam, sqlIf)
     per_testrun_counts= {}
     # Since at this point there could be many duplicate
     # object file & test pair in the selectedTests, then
@@ -82,7 +96,6 @@ module GenTestSuiteMira
     testModules.each do |testFile|
       st.write(testFile.sub(outputParam['removePrefix'], outputParam['replacePrefixWith']) + "\n")
     end
-
     if (escapeTestNames.nil?)
       escapeTestNames = outputParam['escapeTestNames']
     end
@@ -102,7 +115,7 @@ module GenTestSuiteMira
     st.write(")$'\n")
     st.close
     if (per_testrun_counts.size > 0)
-      addTotalCounts(sqlIf, per_testrun_counts)
+      addTotalCounts(sqlIf, testRunsUsed, per_testrun_counts)
       printSavings( per_testrun_counts)
     end
     puts "New  suite created: " + outputFile

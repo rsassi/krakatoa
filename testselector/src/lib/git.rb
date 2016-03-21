@@ -21,9 +21,31 @@ module GitWrapper
   end
 
   # get list of modified files in commit
-  def self.getModifiedFiles(commit)
-    output = `git show --format="format:" --name-only --diff-filter="M" -m #{commit}`
-    output.split("\n").select {|file| file != ""}
+  def self.getModifiedFiles(debug, commit)
+    cmd ="git show --format=\"format:\" --name-only --diff-filter=\"M\" -m #{commit}"
+    output = `#{cmd}`
+    files = output.split("\n").select {|file| file != ""}
+    if (debug)
+      puts "cmd: #{cmd}\nfiles modified in commit: #{files}"
+    end
+    files
+  end
+  # get list of modified functions in commit
+  def self.getModifiedFunctions(debug, commit)
+    functions = []
+    regexp = Regexp.new('@@.*@@ .* (.*)\(')
+    cmd = "git log -p -m #{commit}^..#{commit} | grep '^@@'"
+    output = `#{cmd}`
+    output.split("\n").map do |line|
+      match = regexp.match(line)
+      if (!match.nil?)
+        functions.push(match[1])
+      end
+    end
+    if (debug)
+      puts "cmd: #{cmd}\nfunctions modified in commit: #{functions}"
+    end
+    functions
   end
 
   # Function auto-detects and returns git repo root
@@ -39,19 +61,4 @@ module GitWrapper
     return commitId
   end
 
-  # Function: given an array of filenames,
-  # will return an array containing only the interesting file names
-  def self.pruneFileList(files, gitParam )
-    includeRegExp = Regexp.union(gitParam['includeFilesRegexp'])
-    excludeRegExp = Regexp.union(gitParam['ignoreFilesRegexp'])
-    prunedFiles = Array.new
-    files.each do |file|
-      if (file =~ includeRegExp)
-        unless (file =~ excludeRegExp)
-          prunedFiles.push(file.sub(gitParam['removePrefix'], gitParam['replacePrefixWith']))
-        end
-      end
-    end
-    return prunedFiles
-  end
 end

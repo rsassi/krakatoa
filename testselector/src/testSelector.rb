@@ -11,8 +11,7 @@
 require 'csv'
 require 'optparse'
 
-require_relative 'lib/test_suite_from_function'
-require_relative 'lib/test_suite_from_commit'
+require_relative 'lib/test_selection'
 require_relative 'lib/test_execution'
 require_relative 'lib/config.rb'
 
@@ -34,6 +33,7 @@ Usage:
 END_OF_BANNER
 
       opts.banner = banner
+      options[:select_by] = :files
 
       opts.on("--create", "Create a test suite. (Optional since this is the default.)") do
         options[:create] = true
@@ -52,8 +52,14 @@ END_OF_BANNER
         options[:output_file] = filename
       end
 
-      opts.on("--id HASH",  Array, "Comma-separated list of git commit identifiers.#{TEXT_INDENT}Selects all tests calling at least one function#{TEXT_INDENT} in one of the modified files.#{TEXT_INDENT}Defaults to HEAD.#{TEXT_INDENT}Only valid with --create.") do |commits|
+      opts.on("--modified-files-commit HASH",  Array, "Comma-separated list of git commit identifiers.#{TEXT_INDENT}Selects all tests calling at least one function#{TEXT_INDENT} in one of the modified files.#{TEXT_INDENT}Defaults to HEAD.#{TEXT_INDENT}Only valid with --create.") do |commits|
         options[:commit_ids] = commits
+        options[:select_by] = :files
+      end
+
+      opts.on("--modified-functions-commit HASH",  Array, "Comma-separated list of git commit identifiers.#{TEXT_INDENT}Selects all tests calling at least one function#{TEXT_INDENT} that was modified in the git commit.#{TEXT_INDENT}Defaults to HEAD.#{TEXT_INDENT}Only valid with --create.") do |commits|
+        options[:commit_ids] = commits
+        options[:select_by] = :functions
       end
 
       opts.on("--test-runs a,b,c", Array, "Comma-separated list of identifiers of test executions.#{TEXT_INDENT}Only valid with --create.") do |test_runs|
@@ -132,43 +138,44 @@ if __FILE__ == $PROGRAM_NAME
 
   if (options[:create].nil? && options[:list_test_runs].nil? && options[:list_test_suites].nil?)
     if (options[:debug])
-      puts "Didn't specify one of: [--list-test-runs | --create ], using default: --create"
+      puts "Warning: Didn't specify one of: [--list-test-runs | --create ], using default: --create"
     end
     options[:create] = true
   end
   if (options[:create])
     if (options[:test_suites].nil? && options[:test_runs].nil?  )
       if (options[:debug])
-        puts "Didn't specify one of: [ --test-suites | --test-runs ], using default: --test-suites regression.mira"
+        puts "Warning: Didn't specify one of: [ --test-suites | --test-runs ], using default: --test-suites regression.mira"
       end
       options[:test_suites] = ["regression.mira"]
     end
     if (options[:commit_ids].nil? && options[:functions].nil?  )
       if (options[:debug])
-        puts "Didn't specify one of: [ --id | --function ], using default: --id HEAD"
+        puts "Warning: Didn't specify one of: [ --modified-files-commit | --modified-functions-commit | --functions ], using default: --modified-files-commit HEAD"
       end
       options[:commit_ids] = [ GitWrapper.getDefaultCommitHash() ]
+      options[:select_by] = :files
     end
   end
 
   # sanity check:
   if (options[:test_suites] && options[:test_runs])
-      STDERR.puts("--test-suites and --test-runs are mutually exclusive.")
-      exit 1
+    STDERR.puts("Error: --test-suites and --test-runs are mutually exclusive.")
+    exit 1
   end
-  if (options[:commit_ids] && options[:functions]) 
-      STDERR.puts("--id and --function are mutually exclusive.")
-      exit 1
+  if (options[:commit_ids] && options[:functions])
+    STDERR.puts("Error: (--modified-files-commit OR --modified-functions-commit ) is mutually exclusive with --function")
+    exit 1
   end
 
   if (options[:test_suites] && options[:test_suites].include?('all'))
     options[:test_suites] = TestExecution::get_test_suites(options[:debug], @dbParam)
   end
   if options[:create].nil? && options[:list_test_runs].nil? && options[:list_test_suites].nil?
-    STDERR.puts("One of {--create, --list-test-runs, --list-test-suites } is mandatory.")
+    STDERR.puts("Error: One of {--create, --list-test-runs, --list-test-suites } is mandatory.")
     exit 1
   elsif options[:create] && options[:list_test_runs]
-    STDERR.puts("--create and --list-test-runs are mutually exclusive.")
+    STDERR.puts("Error: --create and --list-test-runs are mutually exclusive.")
     exit 1
   elsif options[:create]
     # Check to see if preconditions for running script are met
@@ -176,9 +183,11 @@ if __FILE__ == $PROGRAM_NAME
       exit 1
     end
     if options[:commit_ids]
-      TestSuiteFromCommit::create_test_suite(options[:commit_ids], options[:test_runs], options[:test_suites], options[:debug], options[:escapeTestNames], options[:output_file], @dbParam, @gitParam, @outputParam)
+      TestSelection::create_test_suite_from_commit(options[:commit_ids], options[:test_runs], options[:test_suites], options[:debug], options[:escapeTestNames], options[:output_file], @dbParam, @gitParam, @outputParam, options[:select_by])
     elsif options[:functions]
-      TestSuiteFromFunction::create_test_suite(options[:functions], options[:test_runs], options[:test_suites], options[:debug], options[:escapeTestNames], options[:output_file], @dbParam, @outputParam)
+      TestSelection::create_test_suite_from_functions(options[:functions], options[:test_runs], options[:test_suites], options[:debug], options[:escapeTestNames], options[:output_file], @dbParam, @outputParam)
+    elsif options[:files]
+      TestSelection::create_test_suite_from_files(options[:files], options[:test_runs], options[:test_suites], options[:debug], options[:escapeTestNames], options[:output_file], @dbParam, @outputParam)
     end
   elsif options[:list_test_runs]
     TestExecution::list_testruns( options[:debug], @dbParam)

@@ -28,6 +28,7 @@ module CoverageDatabase
       begin
         sqlQuery = "SELECT MAX(id) FROM testruns"
         if(@debug)
+          puts "MySqlIf.getLatestTestRuns()"
           puts "sqlQuery= #{sqlQuery}"
         end
         rs = @con.query(sqlQuery)
@@ -68,6 +69,7 @@ module CoverageDatabase
     def getActualTestRuns(testRuns)
       sqlQuery= "SELECT id FROM testruns WHERE #{createTestrunWhereClause(testRuns)}"
       if(@debug)
+        puts "MySqlIf.getActualTestRuns(testRuns)"
         puts "sqlQuery= #{sqlQuery}"
       end
       result = @con.query(sqlQuery)
@@ -115,6 +117,7 @@ module CoverageDatabase
       query = createTestrunQuery(testrunWhereClause)
       rows = []
       if(@debug)
+        puts "MySqlIf.fetchTestRunTableData(testRuns)"
         puts "sqlQuery= #{query}"
       end
       @con.query(query) do |result|
@@ -135,6 +138,7 @@ module CoverageDatabase
       query = %Q[SELECT DISTINCT(`testsuite`) AS 'Test Suite' FROM testruns #{testrunWhereClause} ]
       rows = []
       if(@debug)
+        puts "MySqlIf.fetchTestsuiteTableData(testRuns)"
         puts "sqlQuery= #{query}"
       end
       @con.query(query) do |result|
@@ -149,18 +153,22 @@ module CoverageDatabase
       totalCounts = Array.new
       begin
         testrunSection = createTestrunWhereClause(testRuns)
-        testrunSection = testrunSection.gsub('testruns.id', 'tests.testrun_id')
-        sqlQuery = %Q[SELECT tests.testrun_id, COUNT(tests.id) as total_count, SUM(tests.execution_time_secs) as total_time_secs
-              FROM tests
+        sqlQuery = %Q[SELECT testruns.id, testruns.testposition, testruns.testsuite, COUNT(tests.id) as total_count, SUM(tests.execution_time_secs) as total_time_secs
+              FROM testruns
+              INNER JOIN tests ON testruns.id = tests.testrun_id
               WHERE #{testrunSection}
-              GROUP BY tests.testrun_id]
+              GROUP BY testruns.id]
         if(@debug)
+          puts "MySqlIf.getTotalCounts(testRuns)"
           puts "sqlQuery= #{sqlQuery}"
         end
         rs = @con.query(sqlQuery)
         rs.num_rows.times do
           row = rs.fetch_row
-          totalCounts.push([row[0], row[1].to_i, row[2].to_i ])
+          # convert totals to integer
+          row[3]=row[3].to_i
+          row[4]=row[4].to_i
+          totalCounts.push(row)
         end
         return totalCounts
       rescue Mysql::Error => e
@@ -206,6 +214,7 @@ module CoverageDatabase
         testrunSection = createTestrunWhereClause(testRuns)
         sqlQuery = createTestQuery("#{testrunSection} AND #{sourceFilesSection}")
         if(@debug)
+          puts "MySqlIf.lookupFilename(filenames, testRuns)"
           puts "sqlQuery= #{sqlQuery}"
         end
         rs = @con.query(sqlQuery)
@@ -232,6 +241,7 @@ module CoverageDatabase
         functionSection = createFunctionsWhereClause(functions, 'functions.mangled_name')
         sqlQuery = createTestQuery("#{testrunSection} AND #{functionSection}")
         if(@debug)
+          puts "MySqlIf.lookupFunctionName(functions, testRuns)"
           puts "sqlQuery= #{sqlQuery}"
         end
         rs = @con.query(sqlQuery)
@@ -249,11 +259,13 @@ module CoverageDatabase
     # Returns the list of test runs that match the latest execution of the testSuites.
     def getTestrunsFromTestSuites(testSuites)
       allTestRuns = Array.new
+      #for each test suite, get commit id of most recent set of testruns
       testSuites.each { |testSuite|
         gitCommit=''
         getCommitQuery = %Q[SELECT `git_commit` FROM testruns WHERE `testsuite`='#{testSuite}'
           ORDER BY time_added_epoch DESC LIMIT 1 ]
         if(@debug)
+          puts "MySqlIf.getTestrunsFromTestSuites(testSuites) #1"
           puts "sqlQuery= #{getCommitQuery}"
         end
         rs = @con.query(getCommitQuery)
@@ -261,21 +273,23 @@ module CoverageDatabase
           row = rs.fetch_row
           gitCommit = row[0]
         end
+        # using git commit as filter, select all testruns for that test suite.
         getTestRunsQuery = %Q[SELECT `id` FROM testruns WHERE `testsuite`='#{testSuite}' AND `git_commit`='#{gitCommit}']
-        if (@debug)
-          puts getTestRunsQuery
-        end
-        testRuns = Array.new
         if(@debug)
+          puts "MySqlIf.getTestrunsFromTestSuites(testSuites) #2"
           puts "sqlQuery= #{getTestRunsQuery}"
         end
         rs = @con.query(getTestRunsQuery)
+        testRuns = Array.new
         rs.num_rows.times do
           row = rs.fetch_row
           testRuns.push(Integer(row[0]))
         end
         allTestRuns.concat(testRuns)
       }
+      if(@debug)
+        puts"selected testruns: #{allTestRuns} "
+      end
       return allTestRuns
     end
 
@@ -290,6 +304,7 @@ module CoverageDatabase
       GROUP BY tests.mangled_name
       ) t;]
       if (@debug)
+        puts "MySqlIf.getTotalTestCount(testRuns)"
         puts totalTestCountQuery
       end
       rs = @con.query(totalTestCountQuery)
@@ -316,6 +331,7 @@ module CoverageDatabase
       totalfunctionCountQuery = %Q[SELECT count(DISTINCT(mangled_name)) FROM functions
       WHERE #{testrunWhereClause} AND #{functionSection}]
       if (@debug)
+        puts "MySqlIf.getCountOfMatchingFunctions(functions, testRuns)"
         puts totalfunctionCountQuery
       end
       rs = @con.query(totalfunctionCountQuery)
@@ -346,6 +362,7 @@ module CoverageDatabase
         VALUES ('#{ENV['USER']}', '#{ENV['HOST']}', '#{list_count}', '#{commit_count}', '#{function_count}', UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW()))
         ON DUPLICATE KEY UPDATE #{calcStr}, last_visit_epoch =UNIX_TIMESTAMP(NOW());]
       if(@debug)
+        puts "MySqlIf.updateUsageStats(type)"
         puts "sqlQuery= #{updateStmt}"
       end
       begin
