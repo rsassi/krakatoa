@@ -95,7 +95,6 @@ module TestSelection
       $stderr.puts "Error: no test run found for criteria"
       exit(1)
     end
-    puts "Searching which tests in #{testSuites.to_s} exercise code in #{files}."
     sqlIf = CoverageDatabase::MySqlIf.new(debug, dbParam)
     sqlIf.updateUsageStats(:file_request)
     # overrides the list of relevant testRuns if testSuites were specified
@@ -123,7 +122,6 @@ module TestSelection
     if functions.size ==0
       $stderr.puts "No functions found"
     end
-    puts "Searching which tests in #{testSuites.to_s} exercise the functions #{functions}."
     sqlIf = CoverageDatabase::MySqlIf.new(debug, dbParam)
     sqlIf.updateUsageStats(:function_request)
     # overrides the list of relevant testRuns if testSuites were specified

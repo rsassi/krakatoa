@@ -151,10 +151,10 @@ if __FILE__ == $PROGRAM_NAME
     end
     if (options[:commit_ids].nil? && options[:functions].nil?  )
       if (options[:debug])
-        puts "Warning: Didn't specify one of: [ --modified-files-commit | --modified-functions-commit | --functions ], using default: --modified-files-commit HEAD"
+        puts "Warning: Didn't specify one of: [ --modified-files-commit | --modified-functions-commit | --functions ], using default: --modified-functions-commit HEAD"
       end
       options[:commit_ids] = [ GitWrapper.getDefaultCommitHash() ]
-      options[:select_by] = :files
+      options[:select_by] = :functions
     end
   end
 

@@ -34,18 +34,20 @@ module GitWrapper
   def self.getModifiedFunctions(debug, commit)
     functions = []
     regexp = Regexp.new('@@.*@@ .* (.*)\(')
+    excludeRegexp = Regexp.new('\$')
     cmd = "git log -p -m #{commit}^..#{commit} | grep '^@@'"
     output = `#{cmd}`
     output.split("\n").map do |line|
       match = regexp.match(line)
-      if (!match.nil?)
+      nomatch = excludeRegexp.match(line)
+      if (!match.nil? && nomatch.nil?)
         functions.push(match[1])
       end
     end
     if (debug)
       puts "cmd: #{cmd}\nfunctions modified in commit: #{functions}"
     end
-    functions
+    functions.uniq!
   end
 
   # Function auto-detects and returns git repo root
