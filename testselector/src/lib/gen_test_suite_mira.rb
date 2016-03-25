@@ -11,8 +11,12 @@ module GenTestSuiteMira
       row= [hash['testposition'], hash['testsuite'], hash['total_count'], hash['count'], hash['total_time']/60, hash['execution_time_secs']/60, (hash['total_time'] - hash['execution_time_secs'])/60, key, ]
       table.push(row)
     end
-    table = table.sort {|a,b| a[0] <=> b[0]}
-    puts "The following table shows the time savings if the selected tests were executed on the same test positions:"
+    # sort by testsuite then testposition
+    table = table.sort do |a,b|
+      comp = (a[1] <=> b[1])
+      comp.zero? ? (a[0] <=> b[0]) : comp
+    end
+    puts "selected the following tests for each test positions used to collect coverage data:"
     puts(TESTPOSITION_STR_FORMAT % TESTPOSITION_HEADER)  # Print out the header
     puts(TESTPOSITION_STR_FORMAT % Array.new(TESTPOSITION_HEADER.length, '-'))
     table.each do | row|

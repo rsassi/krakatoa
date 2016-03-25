@@ -27,6 +27,10 @@ module TestSelection
   def self.create_test_suite_from_commit(commits, testRuns, testSuites, debug, escapeTestNames, outputFile, dbParam, gitParam, outputParam, selectBy)
     removePrefix = gitParam['removePrefix']
     replacePrefixWith = gitParam['replacePrefixWith']
+    puts "For commits:"
+    commits.each do |commit|
+      puts "\t #{commit}"
+    end
     puts "Searching for tests in:"
     if (testSuites.nil?)
       testRuns.each do |testRun|
@@ -61,7 +65,8 @@ module TestSelection
     elsif selectBy ==  :functions
        commitFunctions = Array.new
        commits.each do |commit|
-         commitFunctions.concat(GitWrapper::getModifiedFunctions(debug, commit))
+         modifiedFunctions = GitWrapper::getModifiedFunctions(debug, commit)
+         commitFunctions.concat(modifiedFunctions)
        end
       if (commitFunctions.size == 0)
         $stderr.puts "Error: No modified functions found in commit"
@@ -107,10 +112,7 @@ module TestSelection
     end
     selectedTests = sqlIf.lookupFilename(files, testRuns)
     fileCount = files.size()
-    testCount = Integer(sqlIf.getTotalTestCount(testRuns))
-    selectedTestsCount = selectedTests.size()
-    coverageRatio = sprintf("%3.2f", (selectedTestsCount.to_f/testCount*100.0))
-    puts "For #{fileCount} files identified #{selectedTestsCount.to_s} relevant tests out of #{testCount.to_s}(#{coverageRatio}%)"
+    puts "For #{fileCount} files,"
     GenTestSuiteMira::generateTestSuite(testRuns, selectedTests, escapeTestNames, outputFile, outputParam, sqlIf)
     #Close connection to SQL server
     sqlIf.closeCon
@@ -135,10 +137,7 @@ module TestSelection
     #Fetch  tests which execute the specified function
     matchingFunctionCount = sqlIf.getCountOfMatchingFunctions(functions, testRuns)
     selectedTests = sqlIf.lookupFunctionName(functions, testRuns)
-    testCount = Integer(sqlIf.getTotalTestCount(testRuns))
-    selectedTestsCount = selectedTests.size()
-    coverageRatio = sprintf("%3.2f", (selectedTestsCount.to_f/testCount*100.0))
-    puts "For #{matchingFunctionCount} matching functions, identified #{selectedTestsCount.to_s} relevant tests out of #{testCount.to_s}(#{coverageRatio}%)"
+    puts "For #{matchingFunctionCount} matching functions,"
     GenTestSuiteMira::generateTestSuite(testRuns, selectedTests, escapeTestNames, outputFile, outputParam, sqlIf)
     #Close connection to SQL server
     sqlIf.closeCon

@@ -27,42 +27,42 @@ def parse_opts
     OptionParser.new do |opts|
       banner = <<END_OF_BANNER
 Usage:
-  #{execName} --create [options]
   #{execName} --list-test-runs  [options]
   #{execName} --list-test-suites  [options]
+  #{execName} ---modified-files-commit HASH
+  #{execName} ---modified-functions-commit HASH
+  #{execName} ---functions f1,f2,f3
+  #{execName} ---files f1,f2,f3
 END_OF_BANNER
 
       opts.banner = banner
       options[:select_by] = :files
-
-      opts.on("--create", "Create a test suite. (Optional since this is the default.)") do
-        options[:create] = true
-      end
+      options[:create] = true
 
       opts.on("--list-test-runs", "List the test runs used to gather coverage data.") do |num_execs|
         options[:list_test_runs] = true
-        options[:create] = nil
+        options[:create] = false
       end
       opts.on_tail("--list-test-suites", "List all test suites for which we have coverage data.") do
         options[:list_test_suites] = true
-        options[:create] = nil
+        options[:create] = false
       end
 
-      opts.on("-oFILE", "--out FILE", "Override the name of the test suite file.#{TEXT_INDENT}Only valid with --create.") do |filename|
+      opts.on("-oFILE", "--out FILE", "Override the name of the test suite file.") do |filename|
         options[:output_file] = filename
       end
 
-      opts.on("--modified-files-commit HASH",  Array, "Comma-separated list of git commit identifiers.#{TEXT_INDENT}Selects all tests calling at least one function#{TEXT_INDENT} in one of the modified files.#{TEXT_INDENT}Defaults to HEAD.#{TEXT_INDENT}Only valid with --create.") do |commits|
+      opts.on("--modified-files-commit HASH",  Array, "Comma-separated list of git commit identifiers.#{TEXT_INDENT}Selects all tests calling at least one function#{TEXT_INDENT} in one of the modified files.#{TEXT_INDENT}Defaults to HEAD.") do |commits|
         options[:commit_ids] = commits
         options[:select_by] = :files
       end
 
-      opts.on("--modified-functions-commit HASH",  Array, "Comma-separated list of git commit identifiers.#{TEXT_INDENT}Selects all tests calling at least one function#{TEXT_INDENT} that was modified in the git commit.#{TEXT_INDENT}Defaults to HEAD.#{TEXT_INDENT}Only valid with --create.") do |commits|
+      opts.on("--modified-functions-commit HASH",  Array, "Comma-separated list of git commit identifiers.#{TEXT_INDENT}Selects all tests calling at least one function#{TEXT_INDENT} that was modified in the git commit.#{TEXT_INDENT}Defaults to HEAD.") do |commits|
         options[:commit_ids] = commits
         options[:select_by] = :functions
       end
 
-      opts.on("--test-runs a,b,c", Array, "Comma-separated list of identifiers of test executions.#{TEXT_INDENT}Only valid with --create.") do |test_runs|
+      opts.on("--test-runs a,b,c", Array, "Comma-separated list of identifiers of test executions.") do |test_runs|
         test_runs_int = []
         begin
           test_runs.each do |id|
@@ -75,7 +75,7 @@ END_OF_BANNER
         options[:test_runs] = test_runs_int
       end
 
-      opts.on("--test-suites a,b,c", Array, "Comma-separated list of test suites.#{TEXT_INDENT}Selects relevant tests from test suites.#{TEXT_INDENT}You can also use the special value 'all'.#{TEXT_INDENT}Only valid with --create.#{TEXT_INDENT}Example: smoke.mira,regression.mira ") do |test_suites|
+      opts.on("--test-suites a,b,c", Array, "Comma-separated list of test suites.#{TEXT_INDENT}Selects relevant tests from test suites.#{TEXT_INDENT}You can also use the special value 'all'.#{TEXT_INDENT}Example: smoke.mira,regression.mira ") do |test_suites|
         test_suites_string = []
         begin
           test_suites.each do |id|
@@ -88,8 +88,11 @@ END_OF_BANNER
         options[:test_suites] = test_suites_string
       end
 
-      opts.on("--functions f1,f2,f3", Array, "A list of class and/or function names.#{TEXT_INDENT}Selects all tests calling that function.#{TEXT_INDENT}Only valid with --create.") do |functions|
+      opts.on("--functions f1,f2,f3", Array, "A list of class and/or function names.#{TEXT_INDENT}Selects all tests calling a function that contain these names.") do |functions|
         options[:functions] = functions
+      end
+      opts.on("--files f1,f2,f3", Array, "A list of file names.#{TEXT_INDENT}Selects all tests calling code in those exact file names.") do |files|
+        options[:files] = files
       end
 
       opts.on_tail("-n", "--dont-escape-test-names", "Avoid escaping regular expression characters in test names.#{TEXT_INDENT}WARNING! Only provided to improve human readability.") do
@@ -136,12 +139,6 @@ if __FILE__ == $PROGRAM_NAME
     options[:escapeTestNames]= true
   end
 
-  if (options[:create].nil? && options[:list_test_runs].nil? && options[:list_test_suites].nil?)
-    if (options[:debug])
-      puts "Warning: Didn't specify one of: [--list-test-runs | --create ], using default: --create"
-    end
-    options[:create] = true
-  end
   if (options[:create])
     if (options[:test_suites].nil? && options[:test_runs].nil?  )
       if (options[:debug])
@@ -149,9 +146,9 @@ if __FILE__ == $PROGRAM_NAME
       end
       options[:test_suites] = ["regression.mira"]
     end
-    if (options[:commit_ids].nil? && options[:functions].nil?  )
+    if (options[:commit_ids].nil? && options[:functions].nil?  && options[:files].nil?  )
       if (options[:debug])
-        puts "Warning: Didn't specify one of: [ --modified-files-commit | --modified-functions-commit | --functions ], using default: --modified-functions-commit HEAD"
+        puts "Warning: Didn't specify one of: [ --modified-files-commit | --modified-functions-commit | --functions | --files ], using default: --modified-functions-commit HEAD"
       end
       options[:commit_ids] = [ GitWrapper.getDefaultCommitHash() ]
       options[:select_by] = :functions

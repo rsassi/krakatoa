@@ -48,6 +48,7 @@ module GitWrapper
       puts "cmd: #{cmd}\nfunctions modified in commit: #{functions}"
     end
     functions.uniq!
+    functions
   end
 
   # Function auto-detects and returns git repo root
