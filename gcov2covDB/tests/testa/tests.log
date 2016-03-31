@@ -1,7 +1,0 @@
-argc 3
-args[i] = "ABC"
-Two consecutive args are identical!
-....lafonction
-xargs[i] = "ABC"
-Args are different!
-.

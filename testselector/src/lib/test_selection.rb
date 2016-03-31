@@ -57,7 +57,8 @@ module TestSelection
         $stderr.puts "Error: No C++ files found in commit"
         exit 1
       end
-      puts "Which exercise code in one of the following files:"
+      puts "Which exercise code in one of the following #{files.size} files:"
+      files.sort!
       files.each do |file|
         puts "\t#{file}"
       end
@@ -72,9 +73,10 @@ module TestSelection
         $stderr.puts "Error: No modified functions found in commit"
         exit 1
       end
-      puts "Which exercise code in one of the following functions:"
-      commitFunctions.each do |file|
-         puts "\t#{file}"
+      puts "Which exercise code in one of the following #{commitFunctions.size} functions:"
+      commitFunctions.sort!
+      commitFunctions.each do |function|
+         puts "\t#{function}"
        end
        create_test_suite_from_functions(commitFunctions, testRuns, testSuites, debug, escapeTestNames, outputFile, dbParam, outputParam)
     else
@@ -135,9 +137,13 @@ module TestSelection
       exit(1)
     end
     #Fetch  tests which execute the specified function
-    matchingFunctionCount = sqlIf.getCountOfMatchingFunctions(functions, testRuns)
+    matchingFunctions = sqlIf.getMatchingFunctions(functions, testRuns)
     selectedTests = sqlIf.lookupFunctionName(functions, testRuns)
-    puts "For #{matchingFunctionCount} matching functions,"
+    puts "For #{matchingFunctions.size} matching functions,"
+    matchingFunctions.sort!
+    matchingFunctions.each do |function|
+       puts "\t#{function}"
+     end
     GenTestSuiteMira::generateTestSuite(testRuns, selectedTests, escapeTestNames, outputFile, outputParam, sqlIf)
     #Close connection to SQL server
     sqlIf.closeCon

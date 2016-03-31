@@ -2,13 +2,13 @@
 require_relative 'database'
 
 module GenTestSuiteMira
-  TESTPOSITION_HEADER =  ['Position', 'Test suite                 ', 'Total', 'Selected', 'Total(mins)', 'Selected(mins)', 'Est. savings(mins)','Testrun',]
+  TESTPOSITION_HEADER =  ['Position', 'Test suite                 ', 'Total_TCs', 'Selected_TCs', 'Total(mins)', 'Selected(mins)', 'Savings(mins)','Testrun_id', 'Date_tested']
   TESTPOSITION_STR_FORMAT = TESTPOSITION_HEADER.map {|str| "%-#{str.size}s" }.join(" ")
 
   def self.printSavings(testposition_hash)
     table = []
     testposition_hash.each  do |key, hash|
-      row= [hash['testposition'], hash['testsuite'], hash['total_count'], hash['count'], hash['total_time']/60, hash['execution_time_secs']/60, (hash['total_time'] - hash['execution_time_secs'])/60, key, ]
+      row= [hash['testposition'], hash['testsuite'], hash['total_count'], hash['count'], hash['total_time']/60, hash['execution_time_secs']/60, (hash['total_time'] - hash['execution_time_secs'])/60, key,hash['date_tested'] ]
       table.push(row)
     end
     # sort by testsuite then testposition
@@ -38,6 +38,7 @@ module GenTestSuiteMira
       #-- add the totals:
       per_testrun_counts[testrun_id]['total_count'] = row[3]
       per_testrun_counts[testrun_id]['total_time']  = row[4]
+      per_testrun_counts[testrun_id]['date_tested'] = row[5]
     end
   end
 
@@ -56,6 +57,9 @@ module GenTestSuiteMira
     warnings
   end
 
+  # input:   array[]
+  #[tests.path, tests.name, tests.mangled_name,
+  # tests.execution_time_secs, testrun_id, testruns.testposition, testruns.testsuite ]
   def self.addTestData(test, per_testrun_counts)
     testrun_id = test[4]
     testposition = test[5]
@@ -74,9 +78,6 @@ module GenTestSuiteMira
     per_testrun_counts[testrun_id]['execution_time_secs'] = per_testrun_counts[testrun_id]['execution_time_secs'] + execution_time_secs
   end
 
-  # input:   array[]
-  #[tests.path, tests.name, tests.mangled_name,
-  # tests.execution_time_secs, testrun_id, testruns.testposition, testruns.testsuite ]
   def self.generateTestSuite(testRunsUsed, selectedTests, escapeTestNames, outputFile, outputParam, sqlIf)
     per_testrun_counts= {}
     # Since at this point there could be many duplicate

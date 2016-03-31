@@ -22,7 +22,6 @@ module CoverageDatabase
       @con.close if @con
     end
 
-
     # Function returns the ID of the latest test run
     def getLatestTestRuns()
       begin
@@ -153,7 +152,7 @@ module CoverageDatabase
       totalCounts = Array.new
       begin
         testrunSection = createTestrunWhereClause(testRuns)
-        sqlQuery = %Q[SELECT testruns.id, testruns.testposition, testruns.testsuite, COUNT(tests.id) as total_count, SUM(tests.execution_time_secs) as total_time_secs
+        sqlQuery = %Q[SELECT testruns.id, testruns.testposition, testruns.testsuite, COUNT(tests.id) as total_count, SUM(tests.execution_time_secs) as total_time_secs, FROM_UNIXTIME(testruns.time_added_epoch,GET_FORMAT(DATE,'ISO')) AS Date_tested
               FROM testruns
               INNER JOIN tests ON testruns.id = tests.testrun_id
               WHERE #{testrunSection}
@@ -238,7 +237,7 @@ module CoverageDatabase
       end
       begin
         testrunSection = createTestrunWhereClause(testRuns)
-        functionSection = createFunctionsWhereClause(functions, 'functions.mangled_name')
+        functionSection = createFunctionsWhereClause(functions, 'functions.name')
         sqlQuery = createTestQuery("#{testrunSection} AND #{functionSection}")
         if(@debug)
           puts "MySqlIf.lookupFunctionName(functions, testRuns)"
@@ -258,39 +257,39 @@ module CoverageDatabase
 
     # Returns the list of test runs that match the latest execution of the testSuites.
     def getTestrunsFromTestSuites(testSuites)
-      allTestRuns = Array.new
+      testRuns = Array.new
       #for each test suite, get commit id of most recent set of testruns
-      testSuites.each { |testSuite|
-        gitCommit=''
-        getCommitQuery = %Q[SELECT `git_commit` FROM testruns WHERE `testsuite`='#{testSuite}'
-          ORDER BY time_added_epoch DESC LIMIT 1 ]
-        if(@debug)
-          puts "MySqlIf.getTestrunsFromTestSuites(testSuites) #1"
-          puts "sqlQuery= #{getCommitQuery}"
+      testSuites.each do |testSuite|
+        testPositions=[]
+        begin
+          getTestPositionsQuery = %Q[SELECT DISTINCT(`testposition`) FROM testruns WHERE `testsuite`='#{testSuite}' ]
+          if(@debug)
+            puts "MySqlIf.getTestrunsFromTestSuites(testSuites) #1"
+            puts "sqlQuery= #{getTestPositionsQuery}"
+          end
+          rs = @con.query(getTestPositionsQuery)
+          rs.num_rows.times do
+            row = rs.fetch_row
+            testPositions.push(row[0])
+          end
         end
-        rs = @con.query(getCommitQuery)
-        rs.num_rows.times do
-          row = rs.fetch_row
-          gitCommit = row[0]
+        testPositions.each do |testPos|
+          getTestrunQuery = %Q[SELECT `id` FROM testruns WHERE `testposition`='#{testPos}' AND `testsuite`='#{testSuite}' ORDER BY time_added_epoch DESC LIMIT 1 ]
+          if(@debug)
+            puts "MySqlIf.getTestrunsFromTestSuites(testSuites) #2"
+            puts "sqlQuery= #{getTestrunQuery}"
+          end
+          rs = @con.query(getTestrunQuery)
+          rs.num_rows.times do
+            row = rs.fetch_row
+            testRuns.push(row[0].to_i)
+          end
         end
-        # using git commit as filter, select all testruns for that test suite.
-        getTestRunsQuery = %Q[SELECT `id` FROM testruns WHERE `testsuite`='#{testSuite}' AND `git_commit`='#{gitCommit}']
-        if(@debug)
-          puts "MySqlIf.getTestrunsFromTestSuites(testSuites) #2"
-          puts "sqlQuery= #{getTestRunsQuery}"
-        end
-        rs = @con.query(getTestRunsQuery)
-        testRuns = Array.new
-        rs.num_rows.times do
-          row = rs.fetch_row
-          testRuns.push(Integer(row[0]))
-        end
-        allTestRuns.concat(testRuns)
-      }
-      if(@debug)
-        puts"selected testruns: #{allTestRuns} "
       end
-      return allTestRuns
+      if(@debug)
+        puts"selected testruns: #{testRuns} "
+      end
+      return testRuns
     end
 
     def getTotalTestCount(testRuns)
@@ -318,28 +317,29 @@ module CoverageDatabase
     # Returns an SQL query section, similar to the following example, for
     # the test run/execution identifier selection:
     #   ( testruns.id = '113' OR testruns.id = '114' OR testruns.id = '115' )
-    def createFunctionsWhereClause(functions, name='functions.mangled_name')
-      functionSection = functions.map { |function| "(#{name} LIKE \'%#{function.gsub(/::/, '%')}%\')" }
+    def createFunctionsWhereClause(functions, name)
+      #functionSection = functions.map { |function| "(#{name} LIKE \'%#{function.gsub(/::/, '%')}%\')" }
+      functionSection = functions.map { |function| "(#{name} LIKE \'%#{function}(%\')" }
       functionSection = functionSection.join(" OR ")
       "( " + functionSection + " )"
     end
 
-    def getCountOfMatchingFunctions(functions, testRuns)
-      functionCount=''
+    def getMatchingFunctions(functions, testRuns)
+      matchingFunctions = []
       testrunWhereClause = createTestrunWhereClause(testRuns, 'testrun_id')
-      functionSection = createFunctionsWhereClause(functions, 'functions.mangled_name')
-      totalfunctionCountQuery = %Q[SELECT count(DISTINCT(mangled_name)) FROM functions
+      functionSection = createFunctionsWhereClause(functions, 'functions.name')
+      totalfunctionCountQuery = %Q[SELECT DISTINCT(name) FROM functions
       WHERE #{testrunWhereClause} AND #{functionSection}]
       if (@debug)
-        puts "MySqlIf.getCountOfMatchingFunctions(functions, testRuns)"
+        puts "MySqlIf.getMatchingFunctions(functions, testRuns)"
         puts totalfunctionCountQuery
       end
       rs = @con.query(totalfunctionCountQuery)
       rs.num_rows.times do
         row = rs.fetch_row
-        functionCount = row[0]
+        matchingFunctions.push(row[0])
       end
-      return functionCount
+      matchingFunctions
     end
 
     def updateUsageStats(type)

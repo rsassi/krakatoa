@@ -16,7 +16,7 @@ require_relative 'lib/test_execution'
 require_relative 'lib/config.rb'
 
 DONT_ESCAPE_TEST_NAMES_WARNING ='WARNING! Using --dont-escape-test-names can cause issues when executing tests. Only provided for improved human readability.'
-TEXT_INDENT = "\n\t\t\t\t\t"
+TEXT_INDENT = "" #"\n\t\t\t\t\t"
 
 def parse_opts
   #Parse custom options
@@ -27,12 +27,6 @@ def parse_opts
     OptionParser.new do |opts|
       banner = <<END_OF_BANNER
 Usage:
-  #{execName} --list-test-runs  [options]
-  #{execName} --list-test-suites  [options]
-  #{execName} ---modified-files-commit HASH
-  #{execName} ---modified-functions-commit HASH
-  #{execName} ---functions f1,f2,f3
-  #{execName} ---files f1,f2,f3
 END_OF_BANNER
 
       opts.banner = banner
@@ -52,12 +46,12 @@ END_OF_BANNER
         options[:output_file] = filename
       end
 
-      opts.on("--modified-files-commit HASH",  Array, "Comma-separated list of git commit identifiers.#{TEXT_INDENT}Selects all tests calling at least one function#{TEXT_INDENT} in one of the modified files.#{TEXT_INDENT}Defaults to HEAD.") do |commits|
+      opts.on("--modified-files h1,h2,h3",  Array, "Comma-separated list of git commit identifiers.#{TEXT_INDENT}Selects all tests calling at least one function#{TEXT_INDENT} in one of the modified files.#{TEXT_INDENT}Defaults to HEAD.") do |commits|
         options[:commit_ids] = commits
         options[:select_by] = :files
       end
 
-      opts.on("--modified-functions-commit HASH",  Array, "Comma-separated list of git commit identifiers.#{TEXT_INDENT}Selects all tests calling at least one function#{TEXT_INDENT} that was modified in the git commit.#{TEXT_INDENT}Defaults to HEAD.") do |commits|
+      opts.on("--modified-functions h1,h2,h3",  Array, "Comma-separated list of git commit identifiers.#{TEXT_INDENT}Selects all tests calling at least one function#{TEXT_INDENT} that was modified in the git commit. #{TEXT_INDENT}Defaults to HEAD.") do |commits|
         options[:commit_ids] = commits
         options[:select_by] = :functions
       end
@@ -88,7 +82,7 @@ END_OF_BANNER
         options[:test_suites] = test_suites_string
       end
 
-      opts.on("--functions f1,f2,f3", Array, "A list of class and/or function names.#{TEXT_INDENT}Selects all tests calling a function that contain these names.") do |functions|
+      opts.on("--functions f1,f2,f3", Array, "A list of class::function names.#{TEXT_INDENT}Selects all tests calling a function that contain these exact names.") do |functions|
         options[:functions] = functions
       end
       opts.on("--files f1,f2,f3", Array, "A list of file names.#{TEXT_INDENT}Selects all tests calling code in those exact file names.") do |files|
@@ -148,7 +142,7 @@ if __FILE__ == $PROGRAM_NAME
     end
     if (options[:commit_ids].nil? && options[:functions].nil?  && options[:files].nil?  )
       if (options[:debug])
-        puts "Warning: Didn't specify one of: [ --modified-files-commit | --modified-functions-commit | --functions | --files ], using default: --modified-functions-commit HEAD"
+        puts "Warning: Didn't specify one of: [ --modified-files | --modified-functions | --functions | --files ], using default: --modified-functions HEAD"
       end
       options[:commit_ids] = [ GitWrapper.getDefaultCommitHash() ]
       options[:select_by] = :functions
@@ -161,7 +155,7 @@ if __FILE__ == $PROGRAM_NAME
     exit 1
   end
   if (options[:commit_ids] && options[:functions])
-    STDERR.puts("Error: (--modified-files-commit OR --modified-functions-commit ) is mutually exclusive with --function")
+    STDERR.puts("Error: (--modified-files OR --modified-functions ) is mutually exclusive with --function")
     exit 1
   end
 

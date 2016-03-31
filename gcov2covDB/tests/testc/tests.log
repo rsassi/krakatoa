@@ -1,6 +1,0 @@
-argc 3
-args[i] = "ABC"
-Args are different!
-.args[i] = "DEF"
-Args are different!
-.
