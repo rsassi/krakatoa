@@ -42,10 +42,16 @@ Input:
 * A list of git commits or functions to use to determine relevant tests
 
 The rule used to select tests are very simple:
+* select all tests that call at least one of the modified functions in the specified git change sets.
+
+   OR
 * select all tests that call at least one function in one of the modified files in the specified git change sets.
 
    OR
-* select all tests that call a certain list of functions
+* select all tests that call one of the specified functions
+
+   OR
+* select all tests that call a function in one of the specified files
 
 Output:
 * List of relevant tests in specified format
@@ -62,49 +68,47 @@ Try this first:
 ```
 
 
-### 1) Select tests covering code in files modified in last commit
+###  The default is to select tests covering code in modified functions in last commit
 ```
+ cd /repo/gitproject
  testselector
- cd /repo/gitproject
- Searching which tests in ["regression.mira"] exercise code in one of the following .cc files from ["8f6c4233f8a4cbad"]:
- ["./eqp/rdEqp/serviceControl/src/rdEqpCtrl.cc"]
- For 1 C++ files in commit ["8f6c4233f8a4cbad"], identified 278 relevant tests out of 551(50.45%)
- New mira suite created: /repo/gitproject/test/mira/tests/testsuites/Krakatoa.mira
- Elapsed time: 6.278 seconds.
-```
+For commits:
+     cafe703383463a6494956ac5b98ff96e94c4ae0a
+Searching for tests in:
+     regression.mira
+Which exercise code in one of the following 8 functions:
+     RdSrv::generateCapabilityMismatchString
+     RdSrv::hasComparableBranchCap
+     RdSrv::hasComparableCapToLocked
+     RdBranchCapabilityCfmMessageHandler::handleTxPower
+     RdClientTxRxBranch::isCarrierDataRequired
+     RdModel::getBranchCarrierDataCapability
+     TxLoSrvIru::isTxLoToBeChanged
+     TxLoSrvIru::postInitializeService
+For 10 matching functions,
+     Eqp::RdSrv::generateCapabilityMismatchString(Rd::BranchBandCapability const&, Rd::BranchBandCapability const&, std::string&)
+     Eqp::RdSrv::generateCapabilityMismatchString(Rd::BranchFreqCapability const&, Rd::BranchFreqCapability const&, std::string&)
+     Eqp::RdSrv::generateCapabilityMismatchString(Rd::BranchRxGainCapability const&, Rd::BranchRxGainCapability const&, std::string&)
+     Eqp::RdSrv::generateCapabilityMismatchString(Rd::BranchTxPowerCapability const&, Rd::BranchTxPowerCapability const&, std::string&)
+     Eqp::RdSrv::hasComparableBranchCap(unsigned int, std::string&)
+     Eqp::RdSrv::hasComparableCapToLocked(unsigned int, std::string&)
+     Rd::RdBranchCapabilityCfmMessageHandler::handleTxPower(unsigned int, Rd::BranchEnumType, capTxPowerMeasS&)
+     Rd::RdClientTxRxBranch::isCarrierDataRequired()
+     Tx::Service::TxLoSrvIru::isTxLoToBeChanged(Frequency&)
+     Tx::Service::TxLoSrvIru::postInitializeService()
+selected the following tests for each test positions used to collect coverage data:
+Pos. Test suite       Total Selected Total(mins) Selected(mins) Savings(mins) Testrun_id Date_tested
+-    -                -     -        -           -              -             -          -          
+119  regression.mira  218   0        168         0              168           290        2016-03-20 
+157  regression.mira  181   0        89          0              89            328        2016-03-28 
+169  regression.mira  283   142      174         148            25            291        2016-03-20 
+183  regression.mira  270   0        151         0              151           292        2016-03-20 
+214  regression.mira  250   0        120         0              120           329        2016-03-28 
+220  regression.mira  287   0        168         0              168           330        2016-03-28 
+91   regression.mira  227   0        128         0              128           327        2016-03-28 
+New  suite created: test/mira/tests/testsuites/smarttest.mira
+Elapsed time: 6.951 seconds.
 
-### 2) Select tests covering code in files modified in a commit
-
-Get the list of testsuites for which we have data:
-``` 
- cd /repo/gitproject
- testselector --list-test-suites
- regression.mira
- smoke.mira
- other.mira
- Elapsed time: 0.021 seconds.
-```
-In the following example we ask ''testselector'' to select a subset of tests from multiple test suites. In this example the test suites are called: { smoke, regression and other }.
-We also specify a commit to be used (HEAD is used when not specified).
-```
- cd /repo/gitproject
- testselector --test-suites smoke.mira,regression.mira,other.mira -i fdca7fbd6d 
- Searching which tests in ["smoke.mira", "regression.mira", "other.mira"] exercise code in one of the following .cc files from ["fdca7fbd6d"]:
- ["./antenna/service/voltage/src/voltageService.cc"]
- For 1 C++ files in commit ["fdca7fbd6d"], identified 209 relevant tests out of 808(25.87%)
- New mira suite created: /repo/gitproject/test/mira/tests/testsuites/Krakatoa.mira
- Elapsed time: 0.398 seconds.
-```
-
-### 3) Select tests covering a function (or class)
-Looking for tests that invoke a specific function:
-```
- cd /repo/gitproject
- testselector --function TxBrFaultAdvisor::onFaultRaised
- Searching which tests in ["regression.mira"] exercise the function TxBrFaultAdvisor::onFaultRaised.
- For 1 matching functions, identified 14 relevant tests out of 551(2.54%)
- New mira suite created: /repo/gitproject/test/mira/tests/testsuites/Krakatoa.mira
- Elapsed time: 40.368 seconds.
 ```
 
 # Using gcov to Generate per test coverage data

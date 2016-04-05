@@ -94,8 +94,12 @@ END_OF_BANNER
         puts DONT_ESCAPE_TEST_NAMES_WARNING
       end
 
-      opts.on_tail("-d", "--debug", "Output debugging information") do
+      opts.on_tail("--debug", "Output debugging information") do
         options[:debug] = true
+      end
+
+      opts.on_tail("--force", "Override warnings and run tool anyway.") do
+        options[:forced] = true
       end
 
       opts.on_tail("-h", "--help", "Show help information") do
@@ -171,6 +175,10 @@ if __FILE__ == $PROGRAM_NAME
   elsif options[:create]
     # Check to see if preconditions for running script are met
     if !GitWrapper::isInRepo()
+      exit 1
+    end
+    if (!options[:forced] && GitWrapper::uncommittedChangesPresent())
+      puts "Error: uncommitted changes will not be used to select tests. Use --force option to ovverride."
       exit 1
     end
     if options[:commit_ids]

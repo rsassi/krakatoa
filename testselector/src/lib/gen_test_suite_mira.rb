@@ -42,18 +42,18 @@ module GenTestSuiteMira
     end
   end
 
+  def self.fileMissing(file, warnings)
+    fileNotPresent = !File.file?(file)
+    if (fileNotPresent)
+      warnings.push("Warning: A file wasn't found in the repo. It was renamed or removed since the last time coverage data was collected. File was removed from output: #{file}")
+    end
+    fileNotPresent
+  end
   def self.validateTestModules(testModules)
     warnings = []
     testModules.uniq!
     # check that the file names are still valid
-    testModules.delete_if
-    testModules.each do |file|
-      fileNotPresent = !File.file?(file)
-      if (fileNotPresent)
-        warnings.push("Warning: A file wasn't found in the repo. It was renamed or removed since the last time coverage data was collected. File was removed from output: #{file}")
-      end
-      fileNotPresent
-    end
+    testModules.delete_if { |file| fileMissing(file, warnings) }
     warnings
   end
 

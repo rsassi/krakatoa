@@ -11,8 +11,16 @@ module GitWrapper
       puts "Error: must be run inside a git repository and at the top of the working directory."
       return false
     end
-
     return true
+  end
+
+  def self.uncommittedChangesPresent()
+    output  = `git diff-index --quiet HEAD`
+    if (($?.to_i != 0))
+      puts "Error: uncommitted changes detected in git repo."
+      return true
+    end
+    return false
   end
 
   # Function returns the path of the configuration directory.
@@ -31,11 +39,11 @@ module GitWrapper
     files
   end
   # get list of modified functions in commit
-  def self.getModifiedFunctions(debug, commit)
+  def self.getModifiedFunctions(debug, commit, commitFiles)
     functions = []
     regexp = Regexp.new('@@.*@@ .* (.*)\(')
     excludeRegexp = Regexp.new('\$')
-    cmd = "git log -p -m #{commit}^..#{commit} | grep '^@@'"
+    cmd = "git log -p -m #{commit}^..#{commit} #{commitFiles.join(' ')}| grep '^@@'"
     output = `#{cmd}`
     output.split("\n").map do |line|
       match = regexp.match(line)
