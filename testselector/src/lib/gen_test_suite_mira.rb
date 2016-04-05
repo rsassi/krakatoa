@@ -2,25 +2,31 @@
 require_relative 'database'
 
 module GenTestSuiteMira
-  TESTPOSITION_HEADER =  ['Position', 'Test suite                 ', 'Total_TCs', 'Selected_TCs', 'Total(mins)', 'Selected(mins)', 'Savings(mins)','Testrun_id', 'Date_tested']
-  TESTPOSITION_STR_FORMAT = TESTPOSITION_HEADER.map {|str| "%-#{str.size}s" }.join(" ")
+  TESTPOSITION_HEADER =  ['Position', 'Test suite', 'Total_TCs', 'Selected_TCs', 'Total(mins)', 'Selected(mins)', 'Savings(mins)','Testrun_id', 'Date_tested']
 
   def self.printSavings(testposition_hash)
+    maxTestsuiteLength = TESTPOSITION_HEADER[1].size
     table = []
     testposition_hash.each  do |key, hash|
       row= [hash['testposition'], hash['testsuite'], hash['total_count'], hash['count'], hash['total_time']/60, hash['execution_time_secs']/60, (hash['total_time'] - hash['execution_time_secs'])/60, key,hash['date_tested'] ]
       table.push(row)
+      if ( hash['testsuite'].size > maxTestsuiteLength)
+        maxTestsuiteLength = hash['testsuite'].size
+      end
     end
+    testposition_format = TESTPOSITION_HEADER.map {|str| "%-#{str.size}s" }
+    testposition_format[1] = "%-#{maxTestsuiteLength}s"
+    testposition_format_str = testposition_format.join(" ")
     # sort by testsuite then testposition
     table = table.sort do |a,b|
       comp = (a[1] <=> b[1])
       comp.zero? ? (a[0] <=> b[0]) : comp
     end
     puts "selected the following tests for each test positions used to collect coverage data:"
-    puts(TESTPOSITION_STR_FORMAT % TESTPOSITION_HEADER)  # Print out the header
-    puts(TESTPOSITION_STR_FORMAT % Array.new(TESTPOSITION_HEADER.length, '-'))
+    puts(testposition_format_str % TESTPOSITION_HEADER)  # Print out the header
+    puts(testposition_format_str % Array.new(TESTPOSITION_HEADER.length, '-'))
     table.each do | row|
-      puts(TESTPOSITION_STR_FORMAT % row)
+      puts(testposition_format_str % row)
     end
   end
 
