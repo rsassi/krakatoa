@@ -16,7 +16,7 @@ require_relative 'lib/test_execution'
 require_relative 'lib/config.rb'
 
 DONT_ESCAPE_TEST_NAMES_WARNING ='WARNING! Using --dont-escape-test-names can cause issues when executing tests. Only provided for improved human readability.'
-TEXT_INDENT = "" #"\n\t\t\t\t\t"
+TEXT_INDENT = "" #"\n\t\t"
 
 def parse_opts
   #Parse custom options
@@ -32,30 +32,34 @@ END_OF_BANNER
       opts.banner = banner
       options[:select_by] = :files
       options[:create] = true
-
-      opts.on("--list-test-runs", "List the test runs used to gather coverage data.") do |num_execs|
-        options[:list_test_runs] = true
-        options[:create] = false
-      end
       opts.on_tail("--list-test-suites", "List all test suites for which we have coverage data.") do
         options[:list_test_suites] = true
         options[:create] = false
       end
-
-      opts.on("-oFILE", "--out FILE", "Override the name of the test suite file.") do |filename|
-        options[:output_file] = filename
-      end
-
-      opts.on("--modified-files h1,h2,h3",  Array, "Comma-separated list of git commit identifiers.#{TEXT_INDENT}Selects all tests calling at least one function#{TEXT_INDENT} in one of the modified files.#{TEXT_INDENT}Defaults to HEAD.") do |commits|
+      opts.on("--select-by-files-modified-in h1,h2,h3",  Array, "Selects tests calling code in one of the files modified in the specified git commits.") do |commits|
         options[:commit_ids] = commits
         options[:select_by] = :files
       end
-
-      opts.on("--modified-functions h1,h2,h3",  Array, "Comma-separated list of git commit identifiers.#{TEXT_INDENT}Selects all tests calling at least one function#{TEXT_INDENT} that was modified in the git commit. #{TEXT_INDENT}Defaults to HEAD.") do |commits|
+      opts.on("--select-by-functions-modified-in h1,h2,h3",  Array, "Selects tests calling one of the functions modified in the specified git commits.") do |commits|
         options[:commit_ids] = commits
         options[:select_by] = :functions
       end
-
+      opts.on("--select-from-test-suites a,b,c", Array, "Selects relevant tests from specified test suites.  Special value: all") do |test_suites|
+        options[:test_suites] = test_suites
+      end
+      opts.on("--select-by-functions f1,f2,f3", Array, "Selects tests calling one of the specified function. Only specify name, not the full signature.") do |functions|
+        options[:functions] = functions
+      end
+      opts.on("--select-by-files f1,f2,f3", Array, "Selects tests calling code in one of the specified files.") do |files|
+        options[:files] = files
+      end
+      opts.on("--list-test-runs", "List the test runs used to gather coverage data.") do |num_execs|
+        options[:list_test_runs] = true
+        options[:create] = false
+      end
+      opts.on("-oFILE", "--out FILE", "Override the name of the test suite file.") do |filename|
+        options[:output_file] = filename
+      end
       opts.on("--test-runs a,b,c", Array, "Comma-separated list of identifiers of test executions.") do |test_runs|
         test_runs_int = []
         begin
@@ -69,25 +73,6 @@ END_OF_BANNER
         options[:test_runs] = test_runs_int
       end
 
-      opts.on("--test-suites a,b,c", Array, "Comma-separated list of test suites.#{TEXT_INDENT}Selects relevant tests from test suites.#{TEXT_INDENT}You can also use the special value 'all'.#{TEXT_INDENT}Example: smoke.mira,regression.mira ") do |test_suites|
-        test_suites_string = []
-        begin
-          test_suites.each do |id|
-            test_suites_string.push(String(id))
-          end
-        rescue ArgumentError => ae
-          puts "Test suites (#{test_suites}) must be a comma-separated list of strings: #{ae}"
-          exit 1
-        end
-        options[:test_suites] = test_suites_string
-      end
-
-      opts.on("--functions f1,f2,f3", Array, "A list of class::function names.#{TEXT_INDENT}Selects all tests calling a function that contain these exact names.") do |functions|
-        options[:functions] = functions
-      end
-      opts.on("--files f1,f2,f3", Array, "A list of file names.#{TEXT_INDENT}Selects all tests calling code in those exact file names.") do |files|
-        options[:files] = files
-      end
 
       opts.on_tail("-n", "--dont-escape-test-names", "Avoid escaping regular expression characters in test names.#{TEXT_INDENT}WARNING! Only provided to improve human readability.") do
         options[:escapeTestNames] = false
@@ -104,7 +89,7 @@ END_OF_BANNER
 
       opts.on_tail("-h", "--help", "Show help information") do
         puts opts
-        puts "Example: #{execName} --test-suites regression.mira,smoke.mira --id fdca7fbd6d"
+        puts "Example: #{execName} --select-from-test-suites regression.mira,smoke.mira --select-by-functions-modified-in fdca7fbd6d,5deadbeef3"
         exit 0
       end
     end.parse!
@@ -140,13 +125,13 @@ if __FILE__ == $PROGRAM_NAME
   if (options[:create])
     if (options[:test_suites].nil? && options[:test_runs].nil?  )
       if (options[:debug])
-        puts "Warning: Didn't specify one of: [ --test-suites | --test-runs ], using default: --test-suites regression.mira"
+        puts "Warning: Didn't specify one of: [ --select-from-test-suites | --test-runs ], using default: --select-from-test-suites regression.mira"
       end
       options[:test_suites] = ["regression.mira"]
     end
     if (options[:commit_ids].nil? && options[:functions].nil?  && options[:files].nil?  )
       if (options[:debug])
-        puts "Warning: Didn't specify one of: [ --modified-files | --modified-functions | --functions | --files ], using default: --modified-functions HEAD"
+        puts "Warning: Didn't specify one of: [ --select-by-files-modified-in | --select-by-functions-modified-in | --select-by-functions | --select-by-files ], using default: --select-by-functions-modified-in HEAD"
       end
       options[:commit_ids] = [ GitWrapper.getDefaultCommitHash() ]
       options[:select_by] = :functions
@@ -155,11 +140,11 @@ if __FILE__ == $PROGRAM_NAME
 
   # sanity check:
   if (options[:test_suites] && options[:test_runs])
-    STDERR.puts("Error: --test-suites and --test-runs are mutually exclusive.")
+    STDERR.puts("Error: --select-from-test-suites and --test-runs are mutually exclusive.")
     exit 1
   end
   if (options[:commit_ids] && options[:functions])
-    STDERR.puts("Error: (--modified-files OR --modified-functions ) is mutually exclusive with --function")
+    STDERR.puts("Error: (--select-by-files-modified-in OR --select-by-functions-modified-in ) is mutually exclusive with --function")
     exit 1
   end
 
