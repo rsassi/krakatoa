@@ -36,18 +36,18 @@ END_OF_BANNER
         options[:list_test_suites] = true
         options[:create] = false
       end
-      opts.on("--select-by-files-modified-in h1,h2,h3",  Array, "Selects tests calling code in one of the files modified in the specified git commits.") do |commits|
+      opts.on("--select-by-files-modified-in commit1,commit2,commit3",  Array, "Selects tests calling code in one of the files modified in the specified git commits.") do |commits|
         options[:commit_ids] = commits
         options[:select_by] = :files
       end
-      opts.on("--select-by-functions-modified-in h1,h2,h3",  Array, "Selects tests calling one of the functions modified in the specified git commits.") do |commits|
+      opts.on("--select-by-functions-modified-in commit1,commit2,commit3",  Array, "Selects tests calling one of the functions modified in the specified git commits.") do |commits|
         options[:commit_ids] = commits
         options[:select_by] = :functions
       end
-      opts.on("--select-from-test-suites a,b,c", Array, "Selects relevant tests from specified test suites.  Special value: all") do |test_suites|
+      opts.on("--select-from-test-suites t1,t2,t3", Array, "Selects relevant tests from specified test suites.  Special value: all") do |test_suites|
         options[:test_suites] = test_suites
       end
-      opts.on("--select-by-functions f1,f2,f3", Array, "Selects tests calling one of the specified function. Only specify name, not the full signature.") do |functions|
+      opts.on("--select-by-functions f1,f2,f3", Array, "Selects tests calling one of the specified functions. Only specify name, not the full signature.") do |functions|
         options[:functions] = functions
       end
       opts.on("--select-by-files f1,f2,f3", Array, "Selects tests calling code in one of the specified files.") do |files|
@@ -57,39 +57,34 @@ END_OF_BANNER
         options[:list_test_runs] = true
         options[:create] = false
       end
-      opts.on("-oFILE", "--out FILE", "Override the name of the test suite file.") do |filename|
+      opts.on("-oFILE", "--out FILE", "Override the name of the test suite file. Default: #{@outputParam['defaultFileName']}") do |filename|
         options[:output_file] = filename
       end
-      opts.on("--test-runs a,b,c", Array, "Comma-separated list of identifiers of test executions.") do |test_runs|
-        test_runs_int = []
-        begin
-          test_runs.each do |id|
-            test_runs_int.push(Integer(id))
-          end
-        rescue ArgumentError => ae
-          puts "Test run identifiers (#{test_runs}) must be a comma-separated list of integers: #{ae}"
-          exit 1
-        end
-        options[:test_runs] = test_runs_int
-      end
-
-
+#      opts.on("--test-runs a,b,c", Array, "Comma-separated list of identifiers of test executions.") do |test_runs|
+#        test_runs_int = []
+#        begin
+#          test_runs.each do |id|
+#            test_runs_int.push(Integer(id))
+#          end
+#        rescue ArgumentError => ae
+#          puts "Test run identifiers (#{test_runs}) must be a comma-separated list of integers: #{ae}"
+#          exit 1
+#        end
+#        options[:test_runs] = test_runs_int
+#      end
       opts.on_tail("-n", "--dont-escape-test-names", "Avoid escaping regular expression characters in test names.#{TEXT_INDENT}WARNING! Only provided to improve human readability.") do
         options[:escapeTestNames] = false
         puts DONT_ESCAPE_TEST_NAMES_WARNING
       end
-
       opts.on_tail("--debug", "Output debugging information") do
         options[:debug] = true
       end
-
       opts.on_tail("--force", "Override warnings and run tool anyway.") do
         options[:forced] = true
       end
-
       opts.on_tail("-h", "--help", "Show help information") do
         puts opts
-        puts "Example: #{execName} --select-from-test-suites regression.mira,smoke.mira --select-by-functions-modified-in fdca7fbd6d,5deadbeef3"
+        puts "Example:\n  #{execName} --select-from-test-suites regression.mira,smoke.mira --select-by-functions-modified-in fdca7fbd6d,5deadbeef3"
         exit 0
       end
     end.parse!
