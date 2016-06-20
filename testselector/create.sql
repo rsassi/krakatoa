@@ -7,6 +7,7 @@ CREATE TABLE `testselector_usage` (
   `list_count` int(11) DEFAULT NULL,
   `commit_count` int(11) DEFAULT NULL,
   `function_count` int(11) DEFAULT NULL,
+  `file_count` int(11) DEFAULT NULL,
   `first_visit_epoch` int(11) DEFAULT NULL,
   `last_visit_epoch` int(11) DEFAULT NULL,
   PRIMARY KEY (`user`, `host`)

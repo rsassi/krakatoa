@@ -60,18 +60,9 @@ END_OF_BANNER
       opts.on("-oFILE", "--out FILE", "Override the name of the test suite file. Default: #{@outputParam['defaultFileName']}") do |filename|
         options[:output_file] = filename
       end
-#      opts.on("--test-runs a,b,c", Array, "Comma-separated list of identifiers of test executions.") do |test_runs|
-#        test_runs_int = []
-#        begin
-#          test_runs.each do |id|
-#            test_runs_int.push(Integer(id))
-#          end
-#        rescue ArgumentError => ae
-#          puts "Test run identifiers (#{test_runs}) must be a comma-separated list of integers: #{ae}"
-#          exit 1
-#        end
-#        options[:test_runs] = test_runs_int
-#      end
+      opts.on("--csv FILE", "Outputs selected tests count to a CSV file as well as stdout.") do |filename|
+        options[:csv_file] = filename
+      end
       opts.on_tail("-n", "--dont-escape-test-names", "Avoid escaping regular expression characters in test names.#{TEXT_INDENT}WARNING! Only provided to improve human readability.") do
         options[:escapeTestNames] = false
         puts DONT_ESCAPE_TEST_NAMES_WARNING
@@ -118,9 +109,9 @@ if __FILE__ == $PROGRAM_NAME
   end
 
   if (options[:create])
-    if (options[:test_suites].nil? && options[:test_runs].nil?  )
+    if (options[:test_suites].nil? )
       if (options[:debug])
-        puts "Warning: Didn't specify one of: [ --select-from-test-suites | --test-runs ], using default: --select-from-test-suites regression.mira"
+        puts "Warning: Didn't specify one of: [ --select-from-test-suites ], using default: --select-from-test-suites regression.mira"
       end
       options[:test_suites] = ["regression.mira"]
     end
@@ -134,10 +125,6 @@ if __FILE__ == $PROGRAM_NAME
   end
 
   # sanity check:
-  if (options[:test_suites] && options[:test_runs])
-    STDERR.puts("Error: --select-from-test-suites and --test-runs are mutually exclusive.")
-    exit 1
-  end
   if (options[:commit_ids] && options[:functions])
     STDERR.puts("Error: (--select-by-files-modified-in OR --select-by-functions-modified-in ) is mutually exclusive with --function")
     exit 1
@@ -162,11 +149,11 @@ if __FILE__ == $PROGRAM_NAME
       exit 1
     end
     if options[:commit_ids]
-      TestSelection::create_test_suite_from_commit(options[:commit_ids], options[:test_runs], options[:test_suites], options[:debug], options[:escapeTestNames], options[:output_file], @dbParam, @gitParam, @outputParam, options[:select_by])
+      TestSelection::create_test_suite_from_commit(options[:commit_ids], options[:test_suites], options[:debug], options[:escapeTestNames], options[:output_file], @dbParam, @gitParam, @outputParam, options[:select_by], options[:csv_file])
     elsif options[:functions]
-      TestSelection::create_test_suite_from_functions(options[:functions], options[:test_runs], options[:test_suites], options[:debug], options[:escapeTestNames], options[:output_file], @dbParam, @outputParam)
+      TestSelection::create_test_suite_from_functions(options[:functions], options[:test_suites], options[:debug], options[:escapeTestNames], options[:output_file], @dbParam, @outputParam, options[:csv_file])
     elsif options[:files]
-      TestSelection::create_test_suite_from_files(options[:files], options[:test_runs], options[:test_suites], options[:debug], options[:escapeTestNames], options[:output_file], @dbParam, @outputParam)
+      TestSelection::create_test_suite_from_files(options[:files], options[:test_suites], options[:debug], options[:escapeTestNames], options[:output_file], @dbParam, @outputParam, options[:csv_file])
     end
   elsif options[:list_test_runs]
     TestExecution::list_testruns( options[:debug], @dbParam)

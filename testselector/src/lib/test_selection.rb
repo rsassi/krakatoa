@@ -35,7 +35,7 @@ module TestSelection
   # coverage data provided by the executions (the identifiers of which are)
   # specified by the "testRuns" argument for the git commit in the radio
   # repository specified by the "hash" argument.
-  def self.create_test_suite_from_commit(commits, testRuns, testSuites, debug, escapeTestNames, outputFile, dbParam, gitParam, outputParam, selectBy)
+  def self.create_test_suite_from_commit(commits, testSuites, debug, escapeTestNames, outputFile, dbParam, gitParam, outputParam, selectBy, csvFile)
     removePrefix = gitParam['removePrefix']
     replacePrefixWith = gitParam['replacePrefixWith']
     puts "For commits:"
@@ -74,7 +74,7 @@ module TestSelection
       commitFiles.each do |file|
         puts "\t#{file}"
       end
-      create_test_suite_from_files(commitFiles, testRuns, testSuites, debug, escapeTestNames, outputFile, dbParam, outputParam)
+      create_test_suite_from_files(commitFiles, testSuites, debug, escapeTestNames, outputFile, dbParam, outputParam, csvFile)
     elsif selectBy ==  :functions
       commitFunctions = Array.new
       commits.each do |commit|
@@ -90,7 +90,7 @@ module TestSelection
       commitFunctions.each do |function|
         puts "\t#{function}"
       end
-      create_test_suite_from_functions(commitFunctions, testRuns, testSuites, debug, escapeTestNames, outputFile, dbParam, outputParam)
+      create_test_suite_from_functions(commitFunctions, testSuites, debug, escapeTestNames, outputFile, dbParam, outputParam, csvFile)
     else
       $stderr.puts "Error unhandled --select-by"
       exit 1
@@ -99,31 +99,20 @@ module TestSelection
 
   # Creates a test suite with the name specified by "outputFile" using the
   # coverage data provided by the executions (the identifiers of which are)
-  def self.create_test_suite_from_files(files, testRuns, testSuites, debug, escapeTestNames, outputFile, dbParam, outputParam)
+  def self.create_test_suite_from_files(files, testSuites, debug, escapeTestNames, outputFile, dbParam, outputParam, csvFile)
     if files.size ==0
       $stderr.puts "No files found"
     end
     sqlIf = CoverageDatabase::MySqlIf.new(debug, dbParam)
     #Open connection to SQL server
     sqlIf.updateUsageStats(:commit_request)
-    # overrides the list of relevant testRuns if testSuites were specified
-    if (testRuns.nil?)
-      testRuns = sqlIf.getTestrunsFromTestSuites(testSuites);
-    end
+    testRuns = sqlIf.getTestrunsFromTestSuites(testSuites);
     if (testRuns.empty?)
       $stderr.puts "Error: no test run found for criteria"
       exit(1)
     end
     sqlIf = CoverageDatabase::MySqlIf.new(debug, dbParam)
     sqlIf.updateUsageStats(:file_request)
-    # overrides the list of relevant testRuns if testSuites were specified
-    if (testRuns.nil?)
-      testRuns = sqlIf.getTestrunsFromTestSuites(testSuites);
-    end
-    if (testRuns.empty?)
-      puts "Error: no test run found for criteria"
-      exit(1)
-    end
     selectedTests = sqlIf.lookupFilename(files, testRuns)
     fileCount = files.size()
     puts "For #{fileCount} files,"
@@ -134,16 +123,13 @@ module TestSelection
 
   # Creates a test suite with the name specified by "outputFile" using the
   # coverage data provided by the executions (the identifiers of which are)
-  def self.create_test_suite_from_functions(functions, testRuns, testSuites, debug, escapeTestNames, outputFile, dbParam, outputParam)
+  def self.create_test_suite_from_functions(functions, testSuites, debug, escapeTestNames, outputFile, dbParam, outputParam, csvFile)
     if functions.size ==0
       $stderr.puts "No functions found"
     end
     sqlIf = CoverageDatabase::MySqlIf.new(debug, dbParam)
     sqlIf.updateUsageStats(:function_request)
-    # overrides the list of relevant testRuns if testSuites were specified
-    if (testRuns.nil?)
-      testRuns = sqlIf.getTestrunsFromTestSuites(testSuites);
-    end
+    testRuns = sqlIf.getTestrunsFromTestSuites(testSuites);
     if (testRuns.empty?)
       puts "Error: no test run found for criteria"
       exit(1)

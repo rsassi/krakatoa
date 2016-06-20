@@ -1,4 +1,4 @@
-# generate list of relevant tests in Mira format.
+# generate list of relevant tests to execute. The file is in Mira format.
 require_relative 'database'
 
 module GenTestSuiteMira

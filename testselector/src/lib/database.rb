@@ -346,6 +346,7 @@ module CoverageDatabase
       list_count     =0
       commit_count   =0
       function_count =0
+      file_count =0
       calcStr = ''
       case type
       when :list_request
@@ -357,9 +358,12 @@ module CoverageDatabase
       when :function_request
         function_count = 1
         calcStr = 'function_count = function_count + 1'
+      when :file_request
+        file_count = 1
+        calcStr = 'file_count = file_count + 1'
       end
-      updateStmt = %Q[INSERT INTO testselector_usage (user, host, list_count, commit_count, function_count, first_visit_epoch, last_visit_epoch)
-        VALUES ('#{ENV['USER']}', '#{ENV['HOST']}', '#{list_count}', '#{commit_count}', '#{function_count}', UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW()))
+      updateStmt = %Q[INSERT INTO testselector_usage (user, host, list_count, commit_count, function_count, file_count, first_visit_epoch, last_visit_epoch)
+        VALUES ('#{ENV['USER']}', '#{ENV['HOST']}', '#{list_count}', '#{commit_count}', '#{function_count}', '#{file_count}', UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW()))
         ON DUPLICATE KEY UPDATE #{calcStr}, last_visit_epoch =UNIX_TIMESTAMP(NOW());]
       if(@debug)
         puts "MySqlIf.updateUsageStats(type)"
