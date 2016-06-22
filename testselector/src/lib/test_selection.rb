@@ -74,7 +74,7 @@ module TestSelection
       commitFiles.each do |file|
         puts "\t#{file}"
       end
-      create_test_suite_from_files(commitFiles, testSuites, debug, escapeTestNames, outputFile, dbParam, outputParam, csvFile)
+      create_test_suite_from_files(commitFiles, testSuites, debug, escapeTestNames, outputFile, dbParam, outputParam, csvFile, commits)
     elsif selectBy ==  :functions
       commitFunctions = Array.new
       commits.each do |commit|
@@ -90,7 +90,7 @@ module TestSelection
       commitFunctions.each do |function|
         puts "\t#{function}"
       end
-      create_test_suite_from_functions(commitFunctions, testSuites, debug, escapeTestNames, outputFile, dbParam, outputParam, csvFile)
+      create_test_suite_from_functions(commitFunctions, testSuites, debug, escapeTestNames, outputFile, dbParam, outputParam, csvFile, commits)
     else
       $stderr.puts "Error unhandled --select-by"
       exit 1
@@ -99,7 +99,7 @@ module TestSelection
 
   # Creates a test suite with the name specified by "outputFile" using the
   # coverage data provided by the executions (the identifiers of which are)
-  def self.create_test_suite_from_files(files, testSuites, debug, escapeTestNames, outputFile, dbParam, outputParam, csvFile)
+  def self.create_test_suite_from_files(files, testSuites, debug, escapeTestNames, outputFile, dbParam, outputParam, csvFile, commits)
     if files.size ==0
       $stderr.puts "No files found"
     end
@@ -116,14 +116,14 @@ module TestSelection
     selectedTests = sqlIf.lookupFilename(files, testRuns)
     fileCount = files.size()
     puts "For #{fileCount} files,"
-    GenTestSuiteMira::generateTestSuite(testRuns, selectedTests, escapeTestNames, outputFile, outputParam, sqlIf)
+    GenTestSuiteMira::generateTestSuite(testRuns, selectedTests, escapeTestNames, outputFile, outputParam, sqlIf, csvFile, commits)
     #Close connection to SQL server
     sqlIf.closeCon
   end
 
   # Creates a test suite with the name specified by "outputFile" using the
   # coverage data provided by the executions (the identifiers of which are)
-  def self.create_test_suite_from_functions(functions, testSuites, debug, escapeTestNames, outputFile, dbParam, outputParam, csvFile)
+  def self.create_test_suite_from_functions(functions, testSuites, debug, escapeTestNames, outputFile, dbParam, outputParam, csvFile, commits)
     if functions.size ==0
       $stderr.puts "No functions found"
     end
@@ -142,7 +142,7 @@ module TestSelection
     matchingFunctions.each do |function|
       puts "\t#{function}"
     end
-    GenTestSuiteMira::generateTestSuite(testRuns, selectedTests, escapeTestNames, outputFile, outputParam, sqlIf)
+    GenTestSuiteMira::generateTestSuite(testRuns, selectedTests, escapeTestNames, outputFile, outputParam, sqlIf, csvFile, commits)
     #Close connection to SQL server
     sqlIf.closeCon
   end

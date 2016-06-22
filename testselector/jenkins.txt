@@ -1,0 +1,14 @@
+example of automating invokation of testselector on new commits
+
+cd repo
+testselector --csv selected_test_count.csv --select-from-test-suites  all --out smarttest.txt &> testselector.txt
+
+mysql -u smartuser  -P 3520 -h esekilx0007-sql8.rnd.ki.sw.ericsson.se -e "set @build_url='${BUILD_URL}'; source load_selected_tests.sql ;"
+
+
+cp smarttest.txt ${WORKSPACE}
+cp testselector.txt ${WORKSPACE}
+cp selected_test_count.csv ${WORKSPACE}
+
+archive: smarttest.txt testselector.txt selected_test_count.csv 
+

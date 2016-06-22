@@ -1,11 +1,22 @@
 # generate list of relevant tests to execute. The file is in Mira format.
 require_relative 'database'
+require 'csv'
 
 module GenTestSuiteMira
-  TESTPOSITION_HEADER =  ['Position', 'Test suite', 'Total_TCs', 'Selected_TCs', 'Total(mins)', 'Selected(mins)', 'Savings(mins)','Testrun_id', 'Date_tested']
+  CSV_HEADER =  ['testrun_id', 'commit',  'total_tcs', 'selected_tcs', 'total_mins', 'selected_mins', 'savings_mins', 'selected_test_filename']
+  STDOUT_HEADER =  ['Position', 'Test suite', 'Total_TCs', 'Selected_TCs', 'Total(mins)', 'Selected(mins)', 'Savings(mins)','Testrun_id', 'Date_tested']
+
+  def self.saveSavings(testposition_hash, csvFile, commits)
+    csv = CSV.open(csvFile, "wb", options = {force_quotes: true} )
+    table = []
+    csv << CSV_HEADER
+    testposition_hash.each  do |key, hash|
+      csv << [key, commits.join(','), hash['total_count'], hash['count'], hash['total_time']/60, hash['execution_time_secs']/60, (hash['total_time'] - hash['execution_time_secs'])/60 ]
+    end
+  end
 
   def self.printSavings(testposition_hash)
-    maxTestsuiteLength = TESTPOSITION_HEADER[1].size
+    maxTestsuiteLength = STDOUT_HEADER[1].size
     table = []
     testposition_hash.each  do |key, hash|
       row= [hash['testposition'], hash['testsuite'], hash['total_count'], hash['count'], hash['total_time']/60, hash['execution_time_secs']/60, (hash['total_time'] - hash['execution_time_secs'])/60, key,hash['date_tested'] ]
@@ -14,7 +25,7 @@ module GenTestSuiteMira
         maxTestsuiteLength = hash['testsuite'].size
       end
     end
-    testposition_format = TESTPOSITION_HEADER.map {|str| "%-#{str.size}s" }
+    testposition_format = STDOUT_HEADER.map {|str| "%-#{str.size}s" }
     testposition_format[1] = "%-#{maxTestsuiteLength}s"
     testposition_format_str = testposition_format.join(" ")
     # sort by testsuite then testposition
@@ -23,8 +34,8 @@ module GenTestSuiteMira
       comp.zero? ? (a[0] <=> b[0]) : comp
     end
     puts "selected the following tests for each test positions used to collect coverage data:"
-    puts(testposition_format_str % TESTPOSITION_HEADER)  # Print out the header
-    puts(testposition_format_str % Array.new(TESTPOSITION_HEADER.length, '-'))
+    puts(testposition_format_str % STDOUT_HEADER)  # Print out the header
+    puts(testposition_format_str % Array.new(STDOUT_HEADER.length, '-'))
     table.each do | row|
       puts(testposition_format_str % row)
     end
@@ -84,7 +95,7 @@ module GenTestSuiteMira
     per_testrun_counts[testrun_id]['execution_time_secs'] = per_testrun_counts[testrun_id]['execution_time_secs'] + execution_time_secs
   end
 
-  def self.generateTestSuite(testRunsUsed, selectedTests, escapeTestNames, outputFile, outputParam, sqlIf)
+  def self.generateTestSuite(testRunsUsed, selectedTests, escapeTestNames, outputFile, outputParam, sqlIf, csvFile, commits)
     per_testrun_counts= {}
     # Since at this point there could be many duplicate
     # object file & test pair in the selectedTests, then
@@ -128,6 +139,9 @@ module GenTestSuiteMira
     if (per_testrun_counts.size > 0)
       addTotalCounts(sqlIf, testRunsUsed, per_testrun_counts)
       printSavings( per_testrun_counts)
+      if (!csvFile.nil?)
+        saveSavings( per_testrun_counts, csvFile, commits)
+      end
     end
     puts "New  suite created: " + outputFile
     warnings.each {|warning| $stderr.puts warning}
